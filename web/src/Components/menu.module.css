@@ -1,0 +1,61 @@
+.scaleX {
+  animation: scale-x 1s forwards cubic-bezier(0.19, 1, 0.22, 1);
+  animation-delay: 1s;
+  opacity: 0;
+}
+
+@keyframes scale-x {
+  0% {
+    opacity: 1;
+    transform: scaleX(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.flyInRight {
+  animation: fly-in-right 0.3s ease-out forwards;
+}
+
+@keyframes fly-in-right {
+  from {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.flyInIcon {
+  animation: fly-in-icon 0.3s ease-out forwards;
+}
+
+@keyframes fly-in-icon {
+  from {
+    transform: translateX(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.flyInContent {
+  animation: fly-in-content 0.5s ease-out forwards;
+}
+
+@keyframes fly-in-content {
+  from {
+    transform: translateX(100px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

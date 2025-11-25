@@ -5,6 +5,11 @@ import {DEFAULT_THEME, Container, Box, List, Title, Button} from '@mantine/core'
 import {TriggerNuiCallback} from '../Utils/TriggerNuiCallback';
 import { HandleNuiMessage } from '../Hooks/HandleNuiMessage';
 import { useClipboard } from '@mantine/hooks';
+import { useDebugDataReceiver } from '../Hooks/useDebugDataReceiver';
+import { IsRunningInBrowser } from '../Utils/Misc';
+
+import {AppearanceMenu} from './menu';
+import { AppearanceNav } from './nav';
 
 interface PlayerInformation {name: string, identifiers: string[]};
 
@@ -14,43 +19,24 @@ export const App: FC = () => {
   const [playerInformation, setPlayerInformation] = useState<PlayerInformation | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
+  // Listen for debug data
+  useDebugDataReceiver();
+
   // Scroll wheel listener - only active when UI is visible
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible || IsRunningInBrowser()) return;
 
     const handleWheel = (event: WheelEvent) => {
       const direction = event.deltaY > 0 ? 'out' : 'in';
 
-      TriggerNuiCallback<void>('scrollWheel', direction)
+      TriggerNuiCallback<void>('scrollWheel', direction).catch(err => {
+        console.error('Failed to trigger scroll wheel callback:', err);
+      });
     };
 
     window.addEventListener('wheel', handleWheel);
     return () => window.removeEventListener('wheel', handleWheel);
   }, [isVisible]);
-
-  const getPlayerInformation = () => {
-    TriggerNuiCallback<PlayerInformation>('getplayerInformation').then(info => {
-      setPlayerInformation(info)
-    }).catch(_ => {
-      setPlayerInformation(null);
-    });
-  };
-
-  const LoadInformation = () => {
-    if (playerInformation === null) return (<></>);  
-    return (
-      <div>
-        <Title c={DEFAULT_THEME.colors.gray[0]} order={2} align='center'>{playerInformation.name}</Title>
-        <List c={DEFAULT_THEME.colors.gray[0]}>
-          {Object.entries(playerInformation.identifiers).map(([type, value], i) => (
-            <List.Item key={i} icon='-'>
-              {type.toUpperCase()}: {value}
-            </List.Item>
-          ))}
-        </List>
-      </div>
-    );
-  };
 
   HandleNuiMessage<boolean>('setVisibleApp', (visible) => {
     setIsVisible(visible);
@@ -60,15 +46,9 @@ export const App: FC = () => {
   });
 
   return (
-    <Container className={classes.app_container}>
-      <Box className={classes.box_container} bg={DEFAULT_THEME.colors.dark[9]} opacity={0.8}>
-          <div>
-            {LoadInformation()}
-          </div>
-          <div>
-            <Button variant='filled' onClick={getPlayerInformation}>GET PLAYER INFORMATION</Button>
-          </div>
-      </Box>
-    </Container>
+    <>
+      <AppearanceMenu />
+      <AppearanceNav />
+    </>
   );
 };
