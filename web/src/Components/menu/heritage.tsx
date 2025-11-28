@@ -6,106 +6,112 @@ import type { THeadBlend } from '../../types/appearance';
 
 // Styled Number Stepper Component
 const NumberStepper: FC<{
-  value: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
+    value: number;
+    min: number;
+    max: number;
+    onChange: (value: number) => void;
 }> = ({ value, min, max, onChange }) => {
-  const [isLeftHovered, setIsLeftHovered] = useState(false);
-  const [isRightHovered, setIsRightHovered] = useState(false);
-  const [inputValue, setInputValue] = useState(value.toString());
+    const [isLeftHovered, setIsLeftHovered] = useState(false);
+    const [isRightHovered, setIsRightHovered] = useState(false);
+    const [inputValue, setInputValue] = useState(value.toString());
 
-  useEffect(() => {
-    setInputValue(value.toString());
-  }, [value]);
+    useEffect(() => {
+        setInputValue(value.toString());
+    }, [value]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInputValue(newValue);
-  };
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newValue = e.target.value;
+        setInputValue(newValue);
+    };
 
-  const handleInputBlur = () => {
-    const numValue = parseInt(inputValue);
-    if (!isNaN(numValue)) {
-      const clampedValue = Math.max(min, Math.min(max, numValue));
-      onChange(clampedValue);
-      setInputValue(clampedValue.toString());
-    } else {
-      setInputValue(value.toString());
-    }
-  };
+    const handleInputBlur = () => {
+        const numValue = parseInt(inputValue);
+        if (!isNaN(numValue)) {
+            const clampedValue = Math.max(min, Math.min(max, numValue));
+            onChange(clampedValue);
+            setInputValue(clampedValue.toString());
+        } else {
+            setInputValue(value.toString());
+        }
+    };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleInputBlur();
-      (e.target as HTMLInputElement).blur();
-    }
-  };
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            handleInputBlur();
+            (e.target as HTMLInputElement).blur();
+        }
+    };
 
-  return (
-    <Box style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', width: '100%' }}>
-      <Button
-        size="xs"
-        variant="default"
-        onClick={() => onChange(Math.max(min, value - 1))}
-        onMouseEnter={() => setIsLeftHovered(true)}
-        onMouseLeave={() => setIsLeftHovered(false)}
-        style={{ 
-          minWidth: '2rem',
-          height: '2.125rem',
-          padding: '0',
-          backgroundColor: isLeftHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          color: 'white',
-          transition: 'all 0.2s ease',
-          cursor: 'pointer',
-          fontSize: '0.875rem'
-        }}
-      >
-        ◂
-      </Button>
-      <input
-        type="text"
-        value={inputValue}
-        onChange={handleInputChange}
-        onBlur={handleInputBlur}
-        onKeyPress={handleKeyPress}
-        style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          padding: '0',
-          textAlign: 'center',
-          flex: 1,
-          height: '2.125rem',
-          width: '4rem',
-          color: 'white',
-          fontSize: '0.875rem',
-          outline: 'none',
-          borderRadius: '0.125rem'
-        }}
-      />
-      <Button
-        size="xs"
-        variant="default"
-        onClick={() => onChange(Math.min(max, value + 1))}
-        onMouseEnter={() => setIsRightHovered(true)}
-        onMouseLeave={() => setIsRightHovered(false)}
-        style={{ 
-          minWidth: '2rem',
-          height: '2.125rem',
-          padding: '0',
-          backgroundColor: isRightHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          color: 'white',
-          transition: 'all 0.2s ease',
-          cursor: 'pointer',
-          fontSize: '0.875rem'
-        }}
-      >
-        ▸
-      </Button>
-    </Box>
-  );
+    return (
+        <Box style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', width: '100%' }}>
+            <Button
+                size="xs"
+                variant="default"
+                onClick={() => {
+                    const next = value - 1;
+                    onChange(next < min ? max : next);
+                }}
+                onMouseEnter={() => setIsLeftHovered(true)}
+                onMouseLeave={() => setIsLeftHovered(false)}
+                style={{
+                    minWidth: '2rem',
+                    height: '2.125rem',
+                    padding: '0',
+                    backgroundColor: isLeftHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: 'white',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                }}
+            >
+                ◂
+            </Button>
+            <input
+                type="text"
+                value={inputValue}
+                onChange={handleInputChange}
+                onBlur={handleInputBlur}
+                onKeyPress={handleKeyPress}
+                style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    padding: '0',
+                    textAlign: 'center',
+                    flex: 1,
+                    height: '2.125rem',
+                    width: '4rem',
+                    color: 'white',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    borderRadius: '0.125rem'
+                }}
+            />
+            <Button
+                size="xs"
+                variant="default"
+                onClick={() => {
+                    const next = value + 1;
+                    onChange(next > max ? min : next);
+                }}
+                onMouseEnter={() => setIsRightHovered(true)}
+                onMouseLeave={() => setIsRightHovered(false)}
+                style={{
+                    minWidth: '2rem',
+                    height: '2.125rem',
+                    padding: '0',
+                    backgroundColor: isRightHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: 'white',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                }}
+            >
+                ▸
+            </Button>
+        </Box>
+    );
 };
 
 export const Heritage: FC = () => {
@@ -175,7 +181,7 @@ export const Heritage: FC = () => {
     const [isModelBoxHovered, setIsModelBoxHovered] = useState(false);
 
     return (
-        <Stack spacing="lg" style={{ padding: '0.25rem 0.75rem', width:'18rem', maxWidth:'400px' }}>
+        <Stack spacing="lg" style={{ padding: '0.25rem 0.75rem', width: '18rem', maxWidth: '400px' }}>
             {/* Model Selection */}
             <Box>
                 <Text fw={600} mb="sm" ta="right" tt="uppercase" size="sm" c="white">{locale.MODEL_TITLE || 'Model'}</Text>
@@ -197,16 +203,16 @@ export const Heritage: FC = () => {
                             onMouseLeave={() => setIsLeftArrowHovered(false)}
                             size="xs"
                             variant="default"
-                            style={{ 
-                              minWidth: '2.125rem',
-                              height: '2.25rem',
-                              padding: '0',
-                              backgroundColor: isLeftArrowHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
-                              border: '1px solid rgba(255, 255, 255, 0.15)',
-                              color: 'white',
-                              transition: 'all 0.2s ease',
-                              cursor: 'pointer',
-                              fontSize: '0.875rem'
+                            style={{
+                                minWidth: '2.125rem',
+                                height: '2.25rem',
+                                padding: '0',
+                                backgroundColor: isLeftArrowHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                color: 'white',
+                                transition: 'all 0.2s ease',
+                                cursor: 'pointer',
+                                fontSize: '0.875rem'
                             }}
                         >
                             ◂
@@ -245,16 +251,16 @@ export const Heritage: FC = () => {
                             onMouseLeave={() => setIsRightArrowHovered(false)}
                             size="xs"
                             variant="default"
-                            style={{ 
-                              minWidth: '2.125rem',
-                              height: '2.25rem',
-                              padding: '0',
-                              backgroundColor: isRightArrowHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
-                              border: '1px solid rgba(255, 255, 255, 0.15)',
-                              color: 'white',
-                              transition: 'all 0.2s ease',
-                              cursor: 'pointer',
-                              fontSize: '0.875rem'
+                            style={{
+                                minWidth: '2.125rem',
+                                height: '2.25rem',
+                                padding: '0',
+                                backgroundColor: isRightArrowHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                color: 'white',
+                                transition: 'all 0.2s ease',
+                                cursor: 'pointer',
+                                fontSize: '0.875rem'
                             }}
                         >
                             ▸
@@ -490,8 +496,8 @@ export const Heritage: FC = () => {
                                         step={0.01}
                                         value={data.shapeMix || 0}
                                         onChange={(e) => updateParents('shapeMix', parseFloat(e.currentTarget.value))}
-                                        style={{ 
-                                            flex: 1, 
+                                        style={{
+                                            flex: 1,
                                             accentColor: '#5c7cfa',
                                             height: '0.375rem',
                                             cursor: 'pointer'
@@ -526,8 +532,8 @@ export const Heritage: FC = () => {
                                         step={0.01}
                                         value={data.thirdMix || 0}
                                         onChange={(e) => updateParents('thirdMix', parseFloat(e.currentTarget.value))}
-                                        style={{ 
-                                            flex: 1, 
+                                        style={{
+                                            flex: 1,
                                             accentColor: '#5c7cfa',
                                             height: '0.375rem',
                                             cursor: 'pointer'
@@ -586,8 +592,8 @@ export const Heritage: FC = () => {
                                     step={0.01}
                                     value={data.skinMix || 0}
                                     onChange={(e) => updateParents('skinMix', parseFloat(e.currentTarget.value))}
-                                    style={{ 
-                                        flex: 1, 
+                                    style={{
+                                        flex: 1,
                                         accentColor: '#5c7cfa',
                                         height: '0.375rem',
                                         cursor: 'pointer'

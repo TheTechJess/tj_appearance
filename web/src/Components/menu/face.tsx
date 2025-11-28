@@ -47,7 +47,10 @@ export const Face: FC = () => {
                 <Button
                     size="xs"
                     variant="default"
-                    onClick={() => onChange(Math.max(min, value - 1))}
+                    onClick={() => {
+                        const next = value - 1;
+                        onChange(next < min ? max : next);
+                    }}
                     onMouseEnter={() => setIsLeftHovered(true)}
                     onMouseLeave={() => setIsLeftHovered(false)}
                     style={{
@@ -87,7 +90,10 @@ export const Face: FC = () => {
                 <Button
                     size="xs"
                     variant="default"
-                    onClick={() => onChange(Math.min(max, value + 1))}
+                    onClick={() => {
+                        const next = value + 1;
+                        onChange(next > max ? min : next);
+                    }}
                     onMouseEnter={() => setIsRightHovered(true)}
                     onMouseLeave={() => setIsRightHovered(false)}
                     style={{
@@ -150,7 +156,7 @@ export const Face: FC = () => {
 
     // Render
     return (
-        <Stack spacing="lg" style={{ padding: '0.25rem 0.75rem', width:'18rem', maxWidth:'400px' }}>
+        <Stack spacing="lg" style={{ padding: '0.25rem 0.75rem', width: '18rem', maxWidth: '400px' }}>
             {data && Object.keys(data).length > 0 ? (
                 <>
                     {/* Ageing overlay block (guarded with optional chaining) */}
