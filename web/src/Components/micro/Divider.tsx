@@ -7,7 +7,7 @@ export const Divider: FC = () => {
       style={{
         width: '100%',
         height: '2px',
-        backgroundColor: 'var(--mantine-color-blue-6)',
+        backgroundColor: '#686868ff',
         margin: '1vh 0',
       }}
     />

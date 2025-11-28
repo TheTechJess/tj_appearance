@@ -397,9 +397,9 @@ export const debugAppearance: TAppearance = {
             id: 'Chin_Bone_Width',
             value: 0,
         },
-        EyeBrown_Forward: {
+        EyeBrow_Forward: {
             index: 7,
-            id: 'EyeBrown_Forward',
+            id: 'EyeBrow_Forward',
             value: 0,
         },
         Lips_Thickness: {
@@ -427,14 +427,14 @@ export const debugAppearance: TAppearance = {
             id: 'Jaw_Bone_Back_Lenght',
             value: 0,
         },
-        EyeBrown_Height: {
+        EyeBrow_Height: {
             index: 6,
-            id: 'EyeBrown_Height',
+            id: 'EyeBrow_Height',
             value: 0,
         },
-        Nose_Peak_Lenght: {
+        Nose_Peak_Length: {
             index: 2,
-            id: 'Nose_Peak_Lenght',
+            id: 'Nose_Peak_Length',
             value: 0,
         },
         Chin_Bone_Length: {
@@ -452,9 +452,9 @@ export const debugAppearance: TAppearance = {
             id: 'Jaw_Bone_Width',
             value: 0,
         },
-        Cheeks_Bone_High: {
+        Cheekbone_High: {
             index: 8,
-            id: 'Cheeks_Bone_High',
+            id: 'Cheekbone_High',
             value: 0,
         },
         Neck_Thikness: {
@@ -477,9 +477,9 @@ export const debugAppearance: TAppearance = {
             id: 'Nose_Peak_Lowering',
             value: 0,
         },
-        Cheeks_Bone_Width: {
+        Cheekbone_Width: {
             index: 9,
-            id: 'Cheeks_Bone_Width',
+            id: 'Cheekbone_Width',
             value: 0,
         },
         Nose_Bone_Twist: {
