@@ -155,6 +155,7 @@ export const Hair: FC = () => {
                                         updateHeadOverlay({
                                             ...(headOverlay.FacialHair || {}),
                                             overlayValue: value,
+                                            id: 'FacialHair',
                                         })
                                     }
                                 }}
@@ -185,6 +186,7 @@ export const Hair: FC = () => {
                                             updateHeadOverlay({
                                                 ...(headOverlay.FacialHair || {}),
                                                 firstColour: firstColourValue,
+                                                id: 'FacialHair',
                                             })
                                         }
                                     }}
@@ -212,6 +214,7 @@ export const Hair: FC = () => {
                                             updateHeadOverlay({
                                                 ...(headOverlay.FacialHair || {}),
                                                 secondColour: secondColourValue,
+                                                id: 'FacialHair',
                                             })
                                         }
                                     }}

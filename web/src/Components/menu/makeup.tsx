@@ -53,6 +53,7 @@ export const MakeupMenu: FC = () => {
                                                 updateHeadOverlay({
                                                     ...(headOverlay.Blush || {}),
                                                     overlayValue: value,
+                                                    id: 'Blush',
                                                 })
                                             }
                                         }}
@@ -81,6 +82,7 @@ export const MakeupMenu: FC = () => {
                                                     updateHeadOverlay({
                                                         ...(headOverlay.Blush || {}),
                                                         firstColour: firstColourValue,
+                                                        id: 'Blush',
                                                     })
                                                 }
                                             }}
@@ -107,6 +109,7 @@ export const MakeupMenu: FC = () => {
                                                     updateHeadOverlay({
                                                         ...(headOverlay.Blush || {}),
                                                         secondColour: firstColourValue,
+                                                        id: 'Blush',
                                                     })
                                                 }
                                             }}
@@ -132,6 +135,7 @@ export const MakeupMenu: FC = () => {
                                             setHeadOverlay({
                                                 ...(headOverlay.Blush || {}),
                                                 overlayOpacity: parseFloat(e.target.value),
+                                                id: 'Blush',
                                             })
                                         }
                                         style={{
@@ -199,6 +203,7 @@ export const MakeupMenu: FC = () => {
                                                 updateHeadOverlay({
                                                     ...(headOverlay.Lipstick || {}),
                                                     overlayValue: value,
+                                                    id: 'Lipstick',
                                                 })
                                             }
                                         }}
