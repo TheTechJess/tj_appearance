@@ -133,38 +133,38 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     };
 
     const data = { label, outfit, job };
-    TriggerNuiCallback<any>(Send.saveOutfit, data, data).then((updatedData) => {
-      if (!updatedData) return;
-      setOutfits(updatedData.outfits ?? outfits);
-      setAppearance(updatedData.appearance ?? appearance);
-    });
+        TriggerNuiCallback<any>(Send.saveOutfit, data, data).then((updatedData) => {
+          if (!updatedData) return;
+          setOutfits(updatedData.outfits ?? outfits);
+          setAppearance(updatedData.appearance ?? appearance);
+        });
   };
 
   const editOutfit = (outfit: TOutfit) => {
     const { label, id } = outfit;
     const data = { label, id };
-    TriggerNuiCallback<any>(Send.renameOutfit, data, data).then((updatedData) => {
-      if (!updatedData) return;
-      setOutfits(updatedData.outfits ?? outfits);
-      setAppearance(updatedData.appearance ?? appearance);
-    });
+        TriggerNuiCallback<any>(Send.renameOutfit, data, data).then((updatedData) => {
+          if (!updatedData) return;
+          setOutfits(updatedData.outfits ?? outfits);
+          setAppearance(updatedData.appearance ?? appearance);
+        });
   };
 
   const deleteOutfit = (id: number) => {
     const data = { id };
-    TriggerNuiCallback<any>(Send.deleteOutfit, data, data).then((updatedData) => {
-      if (!updatedData) return;
-      setOutfits(updatedData.outfits ?? outfits);
-      setAppearance(updatedData.appearance ?? appearance);
-    });
+        TriggerNuiCallback<any>(Send.deleteOutfit, data, data).then((updatedData) => {
+          if (!updatedData) return;
+          setOutfits(updatedData.outfits ?? outfits);
+          setAppearance(updatedData.appearance ?? appearance);
+        });
   };
 
   const useOutfit = (outfit: TOutfitData) => {
-    TriggerNuiCallback<any>(Send.useOutfit, outfit, outfit).then((updatedData) => {
-      if (!updatedData) return;
-      setAppearance(updatedData.appearance ?? appearance);
-      setOutfits(updatedData.outfits ?? outfits);
-    });
+        TriggerNuiCallback<any>(Send.useOutfit, outfit, outfit).then((updatedData) => {
+          if (!updatedData) return;
+          setAppearance(updatedData.appearance ?? appearance);
+          setOutfits(updatedData.outfits ?? outfits);
+        });
   };
 
   const importOutfit = (id: number) => {
@@ -175,11 +175,11 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     const outfitName = `Imported Outfit ${outfits.length + 1}`;
     const data = { id, outfitName };
 
-    TriggerNuiCallback<any>(Send.importOutfit, data, data).then((updatedData) => {
-      if (!updatedData) return;
-      setOutfits(updatedData.outfits ?? outfits);
-      setAppearance(updatedData.appearance ?? appearance);
-    });
+        TriggerNuiCallback<any>(Send.importOutfit, data, data).then((updatedData) => {
+          if (!updatedData) return;
+          setOutfits(updatedData.outfits ?? outfits);
+          setAppearance(updatedData.appearance ?? appearance);
+        });
   };
 
   const shareOutfit = (id: number) => {
@@ -197,10 +197,10 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
 
   // Tattoos methods
   const setPlayerTattoos = (playerTattoos: TTattoo[]) => {
-    TriggerNuiCallback<boolean>(Send.setTattoos, playerTattoos,).then((success) => {
-      if (!success || !appearance) return;
-      setAppearance({ ...appearance, tattoos: playerTattoos });
-    });
+        TriggerNuiCallback<boolean>(Send.setTattoos, playerTattoos).then((success) => {
+          if (!success || !appearance) return;
+          setAppearance({ ...appearance, tattoos: playerTattoos });
+        });
   };
 
   // Appearance methods
@@ -245,11 +245,11 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
   };
 
   const setHairColour = (hairColour: THairColour) => {
-    TriggerNuiCallback(Send.setHeadOverlay, {
-      hairColour: hairColour.Colour,
-      hairHighlight: hairColour.highlight,
-      id: 'hairColour',
-    }, 1);
+        TriggerNuiCallback(Send.setHeadOverlay, {
+          hairColour: hairColour?.Colour,
+          hairHighlight: hairColour?.highlight,
+          id: 'hairColour',
+        }, 1);
   };
 
   const setProp = (prop: TProps[keyof TProps], value: number, isTexture?: boolean) => {
@@ -259,24 +259,24 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     if (isTexture) prop.texture = value;
     else prop.value = value;
 
-    TriggerNuiCallback<number>(Send.setProp, {
-      value: prop.value,
-      index: prop.index,
-      texture: prop.texture,
-      isTexture: isTexture,
-    }).then((propTotal) => {
-      setAppearance((prev) => {
-        if (!prev) return prev;
-        const updated = { ...prev };
-        if (!isTexture) {
-          updated.propTotal[prop.id!].textures = propTotal;
-          prop.texture = 0;
-        }
-        updated.props[prop.id!] = prop;
-        return updated;
-      });
-      isPropFetching.current = false;
-    });
+        TriggerNuiCallback<number>(Send.setProp, {
+          value: prop?.value ?? 0,
+          index: prop?.index ?? 0,
+          texture: prop?.texture ?? 0,
+          isTexture: isTexture ?? false,
+        }, 1).then((propTotal) => {
+          setAppearance((prev) => {
+            if (!prev) return prev;
+            const updated = { ...prev };
+            if (!isTexture) {
+              updated.propTotal[prop.id!].textures = propTotal;
+              prop.texture = 0;
+            }
+            updated.props[prop.id!] = prop;
+            return updated;
+          });
+          isPropFetching.current = false;
+        });
   };
 
   const setDrawable = (drawable: TDrawables[keyof TDrawables], value: number, isTexture?: boolean) => {
@@ -286,24 +286,24 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     if (isTexture) drawable.texture = value;
     else drawable.value = value;
 
-    TriggerNuiCallback<number>(Send.setDrawable, {
-      value: drawable.value,
-      index: drawable.index,
-      texture: drawable.texture,
-      isTexture: isTexture,
-    }, 7 ).then((drawableTotal) => {
-      setAppearance((prev) => {
-        if (!prev) return prev;
-        const updated = { ...prev };
-        if (!isTexture) {
-          updated.drawTotal[drawable.id!].textures = drawableTotal;
-          drawable.texture = 0;
-        }
-        updated.drawables[drawable.id!] = drawable;
-        return updated;
-      });
-      isDrawableFetching.current = false;
-    });
+        TriggerNuiCallback<number>(Send.setDrawable, {
+          value: drawable?.value ?? 0,
+          index: drawable?.index ?? 0,
+          texture: drawable?.texture ?? 0,
+          isTexture: isTexture ?? false,
+        }, 7).then((drawableTotal) => {
+          setAppearance((prev) => {
+            if (!prev) return prev;
+            const updated = { ...prev };
+            if (!isTexture) {
+              updated.drawTotal[drawable.id!].textures = drawableTotal;
+              drawable.texture = 0;
+            }
+            updated.drawables[drawable.id!] = drawable;
+            return updated;
+          });
+          isDrawableFetching.current = false;
+        });
   };
 
   // Toggles methods
@@ -314,19 +314,19 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     hook: any,
     hookData: any
   ) => {
-    if (isToggling.current) return;
-    isToggling.current = true;
+        if (isToggling.current || !item) return;
+        isToggling.current = true;
 
-    TriggerNuiCallback<boolean>(Send.toggleItem, {
-      item,
-      toggle,
-      data,
-      hook,
-      hookData,
-    }).then((state) => {
-      setToggles((prev) => ({ ...prev, [item]: state }));
-      isToggling.current = false;
-    });
+        TriggerNuiCallback<boolean>(Send.toggleItem, {
+          item: item ?? '',
+          toggle: !!toggle,
+          data: data ?? {},
+          hook: hook ?? null,
+          hookData: hookData ?? null,
+        }).then((state) => {
+          setToggles((prev) => ({ ...prev, [item]: state }));
+          isToggling.current = false;
+        });
   };
 
   const value: AppearanceStoreContextType = {

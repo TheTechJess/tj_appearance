@@ -63,7 +63,7 @@ export default {
     "FATHER_SUBTITLE": "Father",
     "COLOUR_SUBTITLE": "Colour",
     "OPACITY_SUBTITLE": "Opacity",
-    "HIGHLIGHT_SUBTITLE": "Hightlight",
+    "HIGHLIGHT_SUBTITLE": "Highlight",
     "WIDTH_SUBTITLE": "Width",
     "HEIGHT_SUBTITLE": "Height",
     "TEXTURE_SUBTITLE": "Texture",

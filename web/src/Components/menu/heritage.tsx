@@ -1,6 +1,5 @@
 import { FC, useState } from 'react';
-import { Box, TextInput, Button, Stack, Text, Grid, NumberInput } from '@mantine/core';
-import { Divider } from '../micro/Divider';
+import { Box, TextInput, Button, Stack, Text, Grid, Divider } from '@mantine/core';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { THeadBlend } from '../../types/appearance';
 import { NumberStepper } from '../micro/NumberStepper';

@@ -2477,7 +2477,7 @@ export const debugBlacklist: TBlacklist = {
 	drawables: {
         masks: {
             textures: {
-                1: [2, 5, 10] // For mask value 0, blacklist textures 2, 5, and 10
+                1: [2, 5, 10] // For mask value 1, blacklist textures 2, 5, and 10
             }
         }
     },

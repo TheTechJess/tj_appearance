@@ -1,6 +1,5 @@
 import { FC, useState, useEffect, lazy, Suspense, ComponentType } from 'react';
-import { Box, Text } from '@mantine/core';
-import { Divider } from './micro/Divider';
+import { Box, Text, Divider } from '@mantine/core';
 import { useAppearanceStore } from '../Providers/AppearanceStoreProvider';
 import classes from './menu.module.css';
 
@@ -139,8 +138,14 @@ export const AppearanceMenu: FC = () => {
         </Box>
       </Box>
 
-      <Divider />
-
+      {showContent && (
+        <Divider
+          size="xl"
+          color="dark"
+          style={{ background: 'rgba(0,0,0,0.5)', height: '0px', width: '100%' }}
+          className={classes.flyInContent}
+        />
+      )}
       <Box style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
         {showContent && MenuComponent && (
           <Box

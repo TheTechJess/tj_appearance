@@ -1,6 +1,5 @@
 import { FC } from 'react';
-import { Box, Button, Stack, Text, Grid } from '@mantine/core';
-import { Divider } from '../micro/Divider';
+import { Box, Button, Stack, Text, Grid, Divider } from '@mantine/core';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { THeadStructure, THeadOverlay, THeadOverlayTotal } from '../../types/appearance';
 import { NumberStepper } from '../micro/NumberStepper';
