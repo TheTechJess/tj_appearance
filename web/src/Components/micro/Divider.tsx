@@ -6,9 +6,13 @@ export const Divider: FC = () => {
     <Box
       style={{
         width: '100%',
-        height: '2px',
-        backgroundColor: '#686868ff',
+        height: '4px',
+        backgroundColor: '#fff',
         margin: '1vh 0',
+        border: '1px solid #fff',
+        borderRadius: '2px',
+        zIndex: 10,
+        position: 'relative',
       }}
     />
   );

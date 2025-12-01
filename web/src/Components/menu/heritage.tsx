@@ -1,118 +1,9 @@
-import { FC, useState, useEffect } from 'react';
+import { FC, useState } from 'react';
 import { Box, TextInput, Button, Stack, Text, Grid, NumberInput } from '@mantine/core';
 import { Divider } from '../micro/Divider';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { THeadBlend } from '../../types/appearance';
-
-// Styled Number Stepper Component
-const NumberStepper: FC<{
-    value: number;
-    min: number;
-    max: number;
-    onChange: (value: number) => void;
-}> = ({ value, min, max, onChange }) => {
-    const [isLeftHovered, setIsLeftHovered] = useState(false);
-    const [isRightHovered, setIsRightHovered] = useState(false);
-    const [inputValue, setInputValue] = useState(value.toString());
-
-    useEffect(() => {
-        setInputValue(value.toString());
-    }, [value]);
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newValue = e.target.value;
-        setInputValue(newValue);
-    };
-
-    const handleInputBlur = () => {
-        const numValue = parseInt(inputValue);
-        if (!isNaN(numValue)) {
-            const clampedValue = Math.max(min, Math.min(max, numValue));
-            onChange(clampedValue);
-            setInputValue(clampedValue.toString());
-        } else {
-            setInputValue(value.toString());
-        }
-    };
-
-    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            handleInputBlur();
-            (e.target as HTMLInputElement).blur();
-        }
-    };
-
-    return (
-        <Box style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', width: '100%' }}>
-            <Button
-                size="xs"
-                variant="default"
-                onClick={() => {
-                    const next = value - 1;
-                    onChange(next < min ? max : next);
-                }}
-                onMouseEnter={() => setIsLeftHovered(true)}
-                onMouseLeave={() => setIsLeftHovered(false)}
-                style={{
-                    minWidth: '2rem',
-                    height: '2.125rem',
-                    padding: '0',
-                    backgroundColor: isLeftHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: 'white',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem'
-                }}
-            >
-                ◂
-            </Button>
-            <input
-                type="text"
-                value={inputValue}
-                onChange={handleInputChange}
-                onBlur={handleInputBlur}
-                onKeyPress={handleKeyPress}
-                style={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    padding: '0',
-                    textAlign: 'center',
-                    flex: 1,
-                    height: '2.125rem',
-                    width: '4rem',
-                    color: 'white',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                    borderRadius: '0.125rem'
-                }}
-            />
-            <Button
-                size="xs"
-                variant="default"
-                onClick={() => {
-                    const next = value + 1;
-                    onChange(next > max ? min : next);
-                }}
-                onMouseEnter={() => setIsRightHovered(true)}
-                onMouseLeave={() => setIsRightHovered(false)}
-                style={{
-                    minWidth: '2rem',
-                    height: '2.125rem',
-                    padding: '0',
-                    backgroundColor: isRightHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    color: 'white',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem'
-                }}
-            >
-                ▸
-            </Button>
-        </Box>
-    );
-};
+import { NumberStepper } from '../micro/NumberStepper';
 
 export const Heritage: FC = () => {
     const {
@@ -126,39 +17,20 @@ export const Heritage: FC = () => {
         setHeadBlend,
     } = useAppearanceStore();
 
-    const [data, setData] = useState<THeadBlend>(appearance?.headBlend || {} as THeadBlend);
-    const [currentPedIndex, setCurrentPedIndex] = useState(appearance?.modelIndex || 0);
-    const [currentPed, setCurrentPed] = useState(models?.[currentPedIndex] || '');
+    // Use store directly, no local cache for headBlend, modelIndex, or currentPed
+    const data = (appearance?.headBlend || {}) as THeadBlend;
+    const currentPedIndex = appearance?.modelIndex || 0;
+    const currentPed = models?.[currentPedIndex] || '';
     const [modelSearch, setModelSearch] = useState('');
     const [showModelDropdown, setShowModelDropdown] = useState(false);
 
-    // Initialize head blend on mount
-    useEffect(() => {
-        if (appearance?.headBlend) {
-            setData(appearance.headBlend);
-            setHeadBlend(appearance.headBlend);
-        }
-    }, []);
-
-    // Update current ped when index changes
-    useEffect(() => {
-        if (models) {
-            setCurrentPed(models[currentPedIndex] || '');
-        }
-    }, [currentPedIndex, models]);
-
     const updateParents = (key: keyof THeadBlend, value: number) => {
         if (currentPedIndex !== 0 && currentPedIndex !== 1) return;
-
         const newData = { ...data, [key]: value };
-        setData(newData);
         setHeadBlend(newData);
     };
 
     const handleModelChange = (model: string, index: number) => {
-        setCurrentPed(model);
-        setCurrentPedIndex(index);
-
         // Check if model is blacklisted
         const isModelValid = blacklist?.models
             ? !blacklist.models.includes(model)

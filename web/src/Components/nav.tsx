@@ -7,7 +7,7 @@ import { IconLock } from './icons/IconLock';
 import { IconToggle } from './icons/IconToggle';
 import { IconHat, IconMask, IconGlasses, IconShirt, IconJacket, IconVest, IconPants, IconShoes } from './icons/ToggleIcons';
 import { useAppearanceStore } from '../Providers/AppearanceStoreProvider';
-import { SendEvent } from '../Utils/eventsHandlers';
+import { TriggerNuiCallback } from '../Utils/TriggerNuiCallback';
 import { Send } from '../enums/events';
 import type { TTab, TDrawables, TProps } from '../types/appearance';
 
@@ -195,11 +195,11 @@ export const AppearanceNav: FC = () => {
   const handleSaveOrClose = () => {
     if (modal === 'save') {
       if (appearance) {
-        SendEvent(Send.save, appearance);
+        TriggerNuiCallback(Send.save, appearance);
       }
     } else if (modal === 'close') {
       if (originalAppearance) {
-        SendEvent(Send.cancel, originalAppearance);
+        TriggerNuiCallback(Send.cancel, originalAppearance);
       }
     }
     setModal(null);

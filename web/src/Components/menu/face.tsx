@@ -1,118 +1,14 @@
-import { FC, useState, useEffect } from 'react';
+import { FC } from 'react';
 import { Box, Button, Stack, Text, Grid } from '@mantine/core';
 import { Divider } from '../micro/Divider';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { THeadStructure, THeadOverlay, THeadOverlayTotal } from '../../types/appearance';
+import { NumberStepper } from '../micro/NumberStepper';
+
+
 
 export const Face: FC = () => {
-    // Styled Number Stepper Component
-    const NumberStepper: FC<{
-        value: number;
-        min: number;
-        max: number;
-        onChange: (value: number) => void;
-    }> = ({ value, min, max, onChange }) => {
-        const [isLeftHovered, setIsLeftHovered] = useState(false);
-        const [isRightHovered, setIsRightHovered] = useState(false);
-        const [inputValue, setInputValue] = useState(value.toString());
 
-        useEffect(() => {
-            setInputValue(value.toString());
-        }, [value]);
-
-        const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-            setInputValue(e.target.value);
-        };
-
-        const handleInputBlur = () => {
-            const numValue = parseInt(inputValue, 10);
-            if (!isNaN(numValue)) {
-                const clampedValue = Math.max(min, Math.min(max, numValue));
-                onChange(clampedValue);
-                setInputValue(clampedValue.toString());
-            } else {
-                setInputValue(value.toString());
-            }
-        };
-
-        const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === 'Enter') {
-                handleInputBlur();
-                (e.target as HTMLInputElement).blur();
-            }
-        };
-
-        return (
-            <Box style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', width: '100%' }}>
-                <Button
-                    size="xs"
-                    variant="default"
-                    onClick={() => {
-                        const next = value - 1;
-                        onChange(next < min ? max : next);
-                    }}
-                    onMouseEnter={() => setIsLeftHovered(true)}
-                    onMouseLeave={() => setIsLeftHovered(false)}
-                    style={{
-                        minWidth: '2rem',
-                        height: '2.125rem',
-                        padding: '0',
-                        backgroundColor: isLeftHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        color: 'white',
-                        transition: 'all 0.2s ease',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                    }}
-                >
-                    ◂
-                </Button>
-                <input
-                    type="text"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onBlur={handleInputBlur}
-                    onKeyPress={handleKeyPress}
-                    style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        padding: '0',
-                        textAlign: 'center',
-                        flex: 1,
-                        height: '2.125rem',
-                        width: '4rem',
-                        color: 'white',
-                        fontSize: '0.875rem',
-                        outline: 'none',
-                        borderRadius: '0.125rem',
-                    }}
-                />
-                <Button
-                    size="xs"
-                    variant="default"
-                    onClick={() => {
-                        const next = value + 1;
-                        onChange(next > max ? min : next);
-                    }}
-                    onMouseEnter={() => setIsRightHovered(true)}
-                    onMouseLeave={() => setIsRightHovered(false)}
-                    style={{
-                        minWidth: '2rem',
-                        height: '2.125rem',
-                        padding: '0',
-                        backgroundColor: isRightHovered ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.6)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
-                        color: 'white',
-                        transition: 'all 0.2s ease',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                    }}
-                >
-                    ▸
-                </Button>
-            </Box>
-        );
-    };
 
     const {
         appearance,
@@ -121,36 +17,19 @@ export const Face: FC = () => {
         setHeadOverlay,
     } = useAppearanceStore();
 
-    // Local snapshot of head structure/overlay — kept in local state but synced from the store
-    const [data, setData] = useState<THeadStructure>(appearance?.headStructure as THeadStructure || {});
-    const [headdata, setHeadData] = useState<THeadOverlay>(appearance?.headOverlay as THeadOverlay || {});
+    // Use store directly, no local cache
+    const data = (appearance?.headStructure as THeadStructure) || {};
+    const headdata = (appearance?.headOverlay as THeadOverlay) || {};
     const headOverlayTotal = (appearance?.headOverlayTotal || {}) as THeadOverlayTotal;
 
-    // Sync local snapshot whenever appearance changes in the store.
-    useEffect(() => {
-        if (appearance) {
-            setData((appearance.headStructure as THeadStructure) || {});
-            setHeadData((appearance.headOverlay as THeadOverlay) || {});
-        } else {
-            setData({});
-            setHeadData({} as THeadOverlay);
-        }
-    }, [appearance]);
+    // No local state sync needed
 
-    // Helpers to safely call store setters while also updating local snapshot optimistically
+    // Directly update store
     const updateHeadStructure = (newField: THeadStructure[keyof THeadStructure]) => {
-        // Update local snapshot so UI responds instantly
-        setData((prev) => {
-            return { ...(prev || {}), [newField.id!]: newField } as THeadStructure;
-        });
-        // Send update to store/backend
         setHeadStructure(newField);
     };
 
     const updateHeadOverlay = (newOverlay: THeadOverlay[keyof THeadOverlay]) => {
-        setHeadData((prev: any) => {
-            return { ...(prev || {}), [newOverlay.id!]: newOverlay } as THeadOverlay;
-        });
         setHeadOverlay(newOverlay);
     };
 
