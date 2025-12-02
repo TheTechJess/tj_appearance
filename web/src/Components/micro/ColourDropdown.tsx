@@ -90,11 +90,11 @@ export const ColourDropdown: FC<ColourDropdownProps> = (props) => {
 
   // When user clicks a colour
   const handleClick = (i: number) => {
-    if (i === selectedIndex) return;
-    const newVal = colours[i];
+    if (i === index) return;
+    const selectedColour = { ...colours[i], index: i };
     setSelectedIndex(i);
-    setDisplay(newVal && typeof newVal === 'object' && 'label' in newVal && typeof newVal.label === 'string' ? newVal.label : "");
-    onChange(newVal);
+    setDisplay(selectedColour.label);
+    onChange(selectedColour);
   };
 
   return (
@@ -161,7 +161,13 @@ export const ColourDropdown: FC<ColourDropdownProps> = (props) => {
               <Box
                 key={i}
                 component="button"
-                onClick={() => handleClick(i)}
+                onClick={() => {
+                  if (i === index) return;
+                  const selectedColour = { ...colours[i], index: i };
+                  setSelectedIndex(i);
+                  setDisplay(selectedColour.label);
+                  onChange(selectedColour);
+                }}
                 sx={{
                   aspectRatio: "1",
                   transition: "all 150ms",

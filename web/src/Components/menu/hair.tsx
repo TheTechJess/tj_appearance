@@ -21,6 +21,16 @@ export const Hair: FC = () => {
     } = useAppearanceStore();
 
     const updateHeadOverlay = (newOverlay: THeadOverlay[keyof THeadOverlay]) => {
+        if (!newOverlay || !newOverlay.id) return;
+        if (headOverlay && headOverlay[newOverlay.id]) {
+            const current = headOverlay[newOverlay.id];
+            let changed = false;
+            if ('overlayValue' in newOverlay && newOverlay.overlayValue !== current.overlayValue) changed = true;
+            if ('firstColour' in newOverlay && newOverlay.firstColour !== current.firstColour) changed = true;
+            if ('secondColour' in newOverlay && newOverlay.secondColour !== current.secondColour) changed = true;
+            if ('overlayOpacity' in newOverlay && newOverlay.overlayOpacity !== current.overlayOpacity) changed = true;
+            if (!changed) return;
+        }
         setHeadOverlay(newOverlay);
     };
 
@@ -28,7 +38,9 @@ export const Hair: FC = () => {
     const drawTotal = appearance?.drawTotal
     const headOverlay = appearance?.headOverlay as THeadOverlay;
     const headOverlayTotal = appearance?.headOverlayTotal;
-    const hairColor = appearance?.hairColour;
+    const hairColour = appearance?.hairColour;
+
+    console.log('Rendering Hair Component with appearance:', JSON.stringify(hairColour));
 
 
     return (
@@ -99,13 +111,21 @@ export const Hair: FC = () => {
                                 </Box>
                                 <ColourDropdown
                                     colourType="hair"
-                                    index={hairColor?.Colour || 0}
-                                    value={null}
+                                    index={typeof hairColour?.Colour === 'number' ? hairColour.Colour : 0}
+                                    value={hairColour ?? null}
                                     onChange={(value) => {
-                                        // Type guard: check if value is THairColour
-                                        if (value && typeof value === 'object' && 'highlight' in value && 'Colour' in value) {
-                                            setHairColour(value as THairColour);
+                                        console.log('Hair colour changed:', JSON.stringify(value));
+                                        let colourIndex = 0;
+                                        if (typeof value === 'object' && value !== null && 'index' in value) {
+                                            colourIndex = typeof value.index === 'number' ? value.index : 0;
+                                        } else if (typeof value === 'number') {
+                                            colourIndex = value;
                                         }
+                                        const newHairColour: THairColour = {
+                                            Colour: colourIndex,
+                                            highlight: hairColour?.highlight ?? 0,
+                                        };
+                                        setHairColour(newHairColour);
                                     }}
                                 />
                             </Box>
@@ -118,13 +138,21 @@ export const Hair: FC = () => {
                                 </Box>
                                 <ColourDropdown
                                     colourType="hair"
-                                    index={hairColor?.highlight || 0}
-                                    value={null}
+                                    index={typeof hairColour?.highlight === 'number' ? hairColour.highlight : 0}
+                                    value={hairColour ?? null}
                                     onChange={(value) => {
-                                        // Type guard: check if value is THairColour
-                                        if (value && typeof value === 'object' && 'highlight' in value && 'Colour' in value) {
-                                            setHairColour(value as THairColour);
+                                        let highlightIndex = 0;
+                                        if (typeof value === 'object' && value !== null && 'index' in value) {
+                                            highlightIndex = typeof value.index === 'number' ? value.index : 0;
+                                        } else if (typeof value === 'number') {
+                                            highlightIndex = value;
                                         }
+                                        const newHairColour: THairColour = {
+                                            Colour: hairColour?.Colour ?? 0,
+                                            highlight: highlightIndex,
+                                        };
+
+                                        setHairColour(newHairColour);
                                     }}
                                 />
                             </Box>
@@ -156,7 +184,7 @@ export const Hair: FC = () => {
                                             ...(headOverlay.FacialHair || {}),
                                             overlayValue: value,
                                             id: 'FacialHair',
-                                        })
+                                        });
                                     }
                                 }}
                             />
@@ -176,7 +204,6 @@ export const Hair: FC = () => {
                                     index={headOverlay?.FacialHair.firstColour || 0}
                                     value={null}
                                     onChange={(value) => {
-                                        // value is expected to be an object, extract the number
                                         const firstColourValue = typeof value === 'object' && value !== null && 'index' in value
                                             ? (value as any).index
                                             : typeof value === 'number'
@@ -187,7 +214,7 @@ export const Hair: FC = () => {
                                                 ...(headOverlay.FacialHair || {}),
                                                 firstColour: firstColourValue,
                                                 id: 'FacialHair',
-                                            })
+                                            });
                                         }
                                     }}
                                 />
@@ -204,7 +231,6 @@ export const Hair: FC = () => {
                                     index={headOverlay?.FacialHair.secondColour || 0}
                                     value={null}
                                     onChange={(value) => {
-                                        // value is expected to be an object, extract the number
                                         const secondColourValue = typeof value === 'object' && value !== null && 'index' in value
                                             ? (value as any).index
                                             : typeof value === 'number'
@@ -215,7 +241,7 @@ export const Hair: FC = () => {
                                                 ...(headOverlay.FacialHair || {}),
                                                 secondColour: secondColourValue,
                                                 id: 'FacialHair',
-                                            })
+                                            });
                                         }
                                     }}
                                 />
@@ -236,12 +262,15 @@ export const Hair: FC = () => {
                                 max={1}
                                 step={0.01}
                                 value={headOverlay.FacialHair.overlayOpacity ?? 0}
-                                onChange={(e) =>
-                                    setHeadOverlay({
-                                        ...(headOverlay.FacialHair || {}),
-                                        overlayOpacity: parseFloat(e.target.value),
-                                    })
-                                }
+                                onChange={(e) => {
+                                    if (headOverlay && headOverlay.FacialHair) {
+                                        updateHeadOverlay({
+                                            ...(headOverlay.FacialHair || {}),
+                                            overlayOpacity: parseFloat(e.target.value),
+                                            id: 'FacialHair',
+                                        });
+                                    }
+                                }}
                                 style={{
                                     flex: 1,
                                     accentColor: '#5c7cfa',
@@ -277,7 +306,8 @@ export const Hair: FC = () => {
                                         updateHeadOverlay({
                                             ...(headOverlay.ChestHair || {}),
                                             overlayValue: value,
-                                        })
+                                            id: 'ChestHair',
+                                        });
                                     }
                                 }}
                             />
@@ -297,7 +327,6 @@ export const Hair: FC = () => {
                                     index={headOverlay?.ChestHair.firstColour || 0}
                                     value={null}
                                     onChange={(value) => {
-                                        // value is expected to be an object, extract the number
                                         const firstColourValue = typeof value === 'object' && value !== null && 'index' in value
                                             ? (value as any).index
                                             : typeof value === 'number'
@@ -307,7 +336,8 @@ export const Hair: FC = () => {
                                             updateHeadOverlay({
                                                 ...(headOverlay.ChestHair || {}),
                                                 firstColour: firstColourValue,
-                                            })
+                                                id: 'ChestHair',
+                                            });
                                         }
                                     }}
                                 />
@@ -324,7 +354,6 @@ export const Hair: FC = () => {
                                     index={headOverlay?.ChestHair.secondColour || 0}
                                     value={null}
                                     onChange={(value) => {
-                                        // value is expected to be an object, extract the number
                                         const secondColourValue = typeof value === 'object' && value !== null && 'index' in value
                                             ? (value as any).index
                                             : typeof value === 'number'
@@ -334,7 +363,8 @@ export const Hair: FC = () => {
                                             updateHeadOverlay({
                                                 ...(headOverlay.ChestHair || {}),
                                                 secondColour: secondColourValue,
-                                            })
+                                                id: 'ChestHair',
+                                            });
                                         }
                                     }}
                                 />
@@ -355,12 +385,15 @@ export const Hair: FC = () => {
                                 max={1}
                                 step={0.01}
                                 value={headOverlay.ChestHair.overlayOpacity ?? 0}
-                                onChange={(e) =>
-                                    setHeadOverlay({
-                                        ...(headOverlay.ChestHair || {}),
-                                        overlayOpacity: parseFloat(e.target.value),
-                                    })
-                                }
+                                onChange={(e) => {
+                                    if (headOverlay && headOverlay.ChestHair) {
+                                        updateHeadOverlay({
+                                            ...(headOverlay.ChestHair || {}),
+                                            overlayOpacity: parseFloat(e.target.value),
+                                            id: 'ChestHair',
+                                        });
+                                    }
+                                }}
                                 style={{
                                     flex: 1,
                                     accentColor: '#5c7cfa',
@@ -396,7 +429,8 @@ export const Hair: FC = () => {
                                         updateHeadOverlay({
                                             ...(headOverlay.Eyebrows || {}),
                                             overlayValue: value,
-                                        })
+                                            id: 'Eyebrows',
+                                        });
                                     }
                                 }}
                             />
@@ -416,7 +450,6 @@ export const Hair: FC = () => {
                                     index={headOverlay?.Eyebrows.firstColour || 0}
                                     value={null}
                                     onChange={(value) => {
-                                        // value is expected to be an object, extract the number
                                         const firstColourValue = typeof value === 'object' && value !== null && 'index' in value
                                             ? (value as any).index
                                             : typeof value === 'number'
@@ -426,7 +459,8 @@ export const Hair: FC = () => {
                                             updateHeadOverlay({
                                                 ...(headOverlay.Eyebrows || {}),
                                                 firstColour: firstColourValue,
-                                            })
+                                                id: 'Eyebrows',
+                                            });
                                         }
                                     }}
                                 />
@@ -443,7 +477,6 @@ export const Hair: FC = () => {
                                     index={headOverlay?.Eyebrows.secondColour || 0}
                                     value={null}
                                     onChange={(value) => {
-                                        // value is expected to be an object, extract the number
                                         const secondColourValue = typeof value === 'object' && value !== null && 'index' in value
                                             ? (value as any).index
                                             : typeof value === 'number'
@@ -453,7 +486,8 @@ export const Hair: FC = () => {
                                             updateHeadOverlay({
                                                 ...(headOverlay.Eyebrows || {}),
                                                 secondColour: secondColourValue,
-                                            })
+                                                id: 'Eyebrows',
+                                            });
                                         }
                                     }}
                                 />
@@ -474,12 +508,15 @@ export const Hair: FC = () => {
                                 max={1}
                                 step={0.01}
                                 value={headOverlay.Eyebrows.overlayOpacity ?? 0}
-                                onChange={(e) =>
-                                    setHeadOverlay({
-                                        ...(headOverlay.Eyebrows || {}),
-                                        overlayOpacity: parseFloat(e.target.value),
-                                    })
-                                }
+                                onChange={(e) => {
+                                    if (headOverlay && headOverlay.Eyebrows) {
+                                        updateHeadOverlay({
+                                            ...(headOverlay.Eyebrows || {}),
+                                            overlayOpacity: parseFloat(e.target.value),
+                                            id: 'Eyebrows',
+                                        });
+                                    }
+                                }}
                                 style={{
                                     flex: 1,
                                     accentColor: '#5c7cfa',

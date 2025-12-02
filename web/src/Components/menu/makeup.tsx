@@ -15,6 +15,18 @@ export const MakeupMenu: FC = () => {
     const headOverlayTotal = appearance?.headOverlayTotal as THeadOverlayTotal;
 
     const updateHeadOverlay = (newOverlay: THeadOverlay[keyof THeadOverlay]) => {
+        if (!newOverlay || !newOverlay.id) return;
+        if (headOverlay && headOverlay[newOverlay.id]) {
+            const current = headOverlay[newOverlay.id];
+            let changed = false;
+            // Only compare relevant fields
+            if ('overlayValue' in newOverlay && newOverlay.overlayValue !== current.overlayValue) changed = true;
+            if ('firstColour' in newOverlay && newOverlay.firstColour !== current.firstColour) changed = true;
+            if ('secondColour' in newOverlay && newOverlay.secondColour !== current.secondColour) changed = true;
+            if ('overlayOpacity' in newOverlay && newOverlay.overlayOpacity !== current.overlayOpacity) changed = true;
+            if (!changed) return;
+        }
+        console.log("UPDATING HERE", newOverlay);
         setHeadOverlay(newOverlay);
     };
 
@@ -54,7 +66,7 @@ export const MakeupMenu: FC = () => {
                                                     ...(headOverlay.Blush || {}),
                                                     overlayValue: value,
                                                     id: 'Blush',
-                                                })
+                                                });
                                             }
                                         }}
                                     />
@@ -83,7 +95,7 @@ export const MakeupMenu: FC = () => {
                                                         ...(headOverlay.Blush || {}),
                                                         firstColour: firstColourValue,
                                                         id: 'Blush',
-                                                    })
+                                                    });
                                                 }
                                             }}
                                         />
@@ -110,7 +122,7 @@ export const MakeupMenu: FC = () => {
                                                         ...(headOverlay.Blush || {}),
                                                         secondColour: firstColourValue,
                                                         id: 'Blush',
-                                                    })
+                                                    });
                                                 }
                                             }}
                                         />
@@ -127,17 +139,19 @@ export const MakeupMenu: FC = () => {
                                 <Box style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                                     <input
                                         type="range"
-                                        min={-1}
+                                        min={0}
                                         max={1}
                                         step={0.01}
                                         value={headOverlay.Blush.overlayOpacity ?? 0}
-                                        onChange={(e) =>
-                                            setHeadOverlay({
-                                                ...(headOverlay.Blush || {}),
-                                                overlayOpacity: parseFloat(e.target.value),
-                                                id: 'Blush',
-                                            })
-                                        }
+                                        onChange={(e) => {
+                                            if (headOverlay && headOverlay.Blush) {
+                                                updateHeadOverlay({
+                                                    ...(headOverlay.Blush || {}),
+                                                    overlayOpacity: parseFloat(e.target.value),
+                                                    id: 'Blush',
+                                                });
+                                            }
+                                        }}
                                         style={{
                                             flex: 1,
                                             accentColor: '#5c7cfa',
@@ -232,6 +246,7 @@ export const MakeupMenu: FC = () => {
                                                     updateHeadOverlay({
                                                         ...(headOverlay.Lipstick || {}),
                                                         firstColour: firstColourValue,
+                                                        id: 'Lipstick',
                                                     })
                                                 }
                                             }}
@@ -258,6 +273,7 @@ export const MakeupMenu: FC = () => {
                                                     updateHeadOverlay({
                                                         ...(headOverlay.Lipstick || {}),
                                                         secondColour: firstColourValue,
+                                                        id: 'Lipstick',
                                                     })
                                                 }
                                             }}
@@ -275,7 +291,7 @@ export const MakeupMenu: FC = () => {
                                 <Box style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                                     <input
                                         type="range"
-                                        min={-1}
+                                        min={0}
                                         max={1}
                                         step={0.01}
                                         value={headOverlay.Lipstick.overlayOpacity ?? 0}
@@ -283,6 +299,7 @@ export const MakeupMenu: FC = () => {
                                             setHeadOverlay({
                                                 ...(headOverlay.Lipstick || {}),
                                                 overlayOpacity: parseFloat(e.target.value),
+                                                id: 'Lipstick',
                                             })
                                         }
                                         style={{
@@ -316,6 +333,7 @@ export const MakeupMenu: FC = () => {
                                                 updateHeadOverlay({
                                                     ...(headOverlay.Makeup || {}),
                                                     overlayValue: value,
+                                                    id: 'Makeup',
                                                 })
                                             }
                                         }}
@@ -344,6 +362,7 @@ export const MakeupMenu: FC = () => {
                                                     updateHeadOverlay({
                                                         ...(headOverlay.Makeup || {}),
                                                         firstColour: firstColourValue,
+                                                        id: 'Makeup',
                                                     })
                                                 }
                                             }}
@@ -370,6 +389,7 @@ export const MakeupMenu: FC = () => {
                                                     updateHeadOverlay({
                                                         ...(headOverlay.Makeup || {}),
                                                         secondColour: firstColourValue,
+                                                        id: 'Makeup',
                                                     })
                                                 }
                                             }}
@@ -387,7 +407,7 @@ export const MakeupMenu: FC = () => {
                                 <Box style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                                     <input
                                         type="range"
-                                        min={-1}
+                                        min={0}
                                         max={1}
                                         step={0.01}
                                         value={headOverlay.Makeup.overlayOpacity ?? 0}
@@ -395,6 +415,7 @@ export const MakeupMenu: FC = () => {
                                             setHeadOverlay({
                                                 ...(headOverlay.Makeup || {}),
                                                 overlayOpacity: parseFloat(e.target.value),
+                                                id: 'Makeup',
                                             })
                                         }
                                         style={{

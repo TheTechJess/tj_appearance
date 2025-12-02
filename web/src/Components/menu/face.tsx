@@ -29,6 +29,16 @@ export const Face: FC = () => {
     };
 
     const updateHeadOverlay = (newOverlay: THeadOverlay[keyof THeadOverlay]) => {
+        if (!newOverlay || !newOverlay.id) return;
+        if (headdata && headdata[newOverlay.id]) {
+            const current = headdata[newOverlay.id];
+            let changed = false;
+            if ('overlayValue' in newOverlay && newOverlay.overlayValue !== current.overlayValue) changed = true;
+            if ('firstColour' in newOverlay && newOverlay.firstColour !== current.firstColour) changed = true;
+            if ('secondColour' in newOverlay && newOverlay.secondColour !== current.secondColour) changed = true;
+            if ('overlayOpacity' in newOverlay && newOverlay.overlayOpacity !== current.overlayOpacity) changed = true;
+            if (!changed) return;
+        }
         setHeadOverlay(newOverlay);
     };
 
@@ -100,6 +110,7 @@ export const Face: FC = () => {
                                                             updateHeadOverlay({
                                                                 ...(headdata.Ageing || {}),
                                                                 overlayOpacity: parseFloat(e.target.value),
+                                                                id: 'Ageing',
                                                             })
                                                         }
                                                         style={{
