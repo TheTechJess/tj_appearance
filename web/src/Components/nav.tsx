@@ -109,6 +109,8 @@ export const AppearanceNav: FC = () => {
   // Animation for nav tabs
   useEffect(() => {
     const limitRef: number[] = [112, 107, 100, 100, 97, 93, 93];
+    let animationFrameId: number;
+    
     const timeout = setTimeout(() => {
       let target = 90;
       if (tabs.length < 8) {
@@ -133,18 +135,25 @@ export const AppearanceNav: FC = () => {
         setLimit(current);
 
         if (progress < 1) {
-          requestAnimationFrame(animate);
+          animationFrameId = requestAnimationFrame(animate);
         }
       };
 
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
     }, 250);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
   }, [tabs.length]);
 
   // Dynamically load tab icons
   useEffect(() => {
+    let isMounted = true;
+    
     const loadIcons = async () => {
       const components: { [key: string]: FC<any> } = {};
 
@@ -157,12 +166,18 @@ export const AppearanceNav: FC = () => {
         }
       }
 
-      setIconComponents(components);
+      if (isMounted) {
+        setIconComponents(components);
+      }
     };
 
     if (tabs.length > 0) {
       loadIcons();
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [tabs]);
 
   const pieAngle = useMemo(() => {
