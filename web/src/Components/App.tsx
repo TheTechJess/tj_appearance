@@ -18,6 +18,7 @@ SendNuiMessage([{ action: 'setVisibleApp', data: true }]);
 export const App: FC = () => {
   const [playerInformation, setPlayerInformation] = useState<PlayerInformation | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [animateIn, setAnimateIn] = useState(false);
 
   // Listen for debug data
   useDebugDataReceiver();
@@ -34,7 +35,7 @@ export const App: FC = () => {
         // Scroll was inside the UI → do NOT trigger NUI scroll callback
         return;
       }
-
+            <AppearanceMenu animateIn={animateIn} isVisible={isVisible} />
       const direction = event.deltaY > 0 ? 'out' : 'in';
 
       TriggerNuiCallback<void>('scrollWheel', direction).catch(err => {
@@ -48,6 +49,10 @@ export const App: FC = () => {
 
   HandleNuiMessage<boolean>('setVisibleApp', (visible) => {
     setIsVisible(visible);
+    if (visible) {
+      setAnimateIn(true);
+      setTimeout(() => setAnimateIn(false), 500); // Match animation duration
+    }
     if (!visible) {
       setPlayerInformation(null);
     }
@@ -55,8 +60,8 @@ export const App: FC = () => {
 
   return (
     <>
-      <AppearanceMenu />
-      <AppearanceNav />
+      <AppearanceMenu animateIn={animateIn} />
+      <AppearanceNav animateIn={animateIn} />
     </>
   );
 };

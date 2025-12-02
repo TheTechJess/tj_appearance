@@ -61,6 +61,8 @@ function GetPlayerAppearance()
   local hairColour = GetHairColour(cache.ped)
   --local tattoos = cache.ped == PlayerPedId() and GetPedTattoos and GetPedTattoos(cache.ped) or {}
 
+
+
   local data = {
     model = model,
     hairColour = hairColour,

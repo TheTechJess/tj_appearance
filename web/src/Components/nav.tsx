@@ -87,7 +87,11 @@ const toggleIconMap: { [key: string]: FC<{ size?: number }> } = {
   IconShoes: IconShoes,
 };
 
-export const AppearanceNav: FC = () => {
+interface AppearanceNavProps {
+  animateIn?: boolean;
+}
+
+export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
   const {
     tabs,
     selectedTab,
@@ -106,42 +110,45 @@ export const AppearanceNav: FC = () => {
   const [modal, setModal] = useState<'close' | 'save' | null>(null);
   const [iconComponents, setIconComponents] = useState<{ [key: string]: FC<any> }>({});
 
-  // Animation for nav tabs
+  // Animation for nav tabs - triggered by animateIn or tabs loading
   useEffect(() => {
-    const limitRef: number[] = [112, 107, 100, 100, 97, 93, 93];
-    const timeout = setTimeout(() => {
-      let target = 90;
-      if (tabs.length < 8) {
-        target = limitRef[tabs.length - 1];
-      }
-
-      // Animate from 0 to target
-      let current = 0;
-      const duration = 1000;
-      const startTime = Date.now();
-
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-
-        // Cubic in-out easing
-        const eased = progress < 0.5
-          ? 4 * progress * progress * progress
-          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-        current = eased * target;
-        setLimit(current);
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
+    if (animateIn && tabs.length > 0) {
+      setLimit(0); // Reset animation
+      const limitRef: number[] = [112, 107, 100, 100, 97, 93, 93];
+      const timeout = setTimeout(() => {
+        let target = 90;
+        if (tabs.length < 8) {
+          target = limitRef[tabs.length - 1];
         }
-      };
 
-      requestAnimationFrame(animate);
-    }, 250);
+        // Animate from 0 to target
+        let current = 0;
+        const duration = 1000;
+        const startTime = Date.now();
 
-    return () => clearTimeout(timeout);
-  }, [tabs.length]);
+        const animate = () => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+
+          // Cubic in-out easing
+          const eased = progress < 0.5
+            ? 4 * progress * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+          current = eased * target;
+          setLimit(current);
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        };
+
+        requestAnimationFrame(animate);
+      }, 250);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [animateIn, tabs.length]);
 
   // Dynamically load tab icons
   useEffect(() => {
@@ -211,19 +218,22 @@ export const AppearanceNav: FC = () => {
       <Box
         component="nav"
         style={{
-          position: 'absolute',
+          position: 'fixed',
+          left: '50%',
+          top: '45%',
+          transform: 'translate(-50%, -50%)',
           zIndex: 9999,
-          width: 'fit-content',
-          height: 'fit-content',
-          borderRadius: '9999px',
+          width: '0',
+          height: '0',
+          pointerEvents: 'none',
         }}
       >
         {tabs.map((tab, index) => {
           const selected = selectedTab?.id === tab.id;
             const [x, y] = pointIcon(
-              (window.innerWidth / 2) * (100 / window.innerHeight),  // convert center to vh units
-              35,  // vertical center (adjusted)
-              60,  // radius for the circle
+              0,  // center x
+              0,  // center y
+              40,  // radius in rem
               pieAngle * (tabs.length - index) - pieAngle / 2,
               limit
             );
@@ -247,11 +257,12 @@ export const AppearanceNav: FC = () => {
                 transformOrigin: 'center',
                 overflow: 'visible',
                 cursor: 'pointer',
-                left: `${x}vh`,
-                top: `${y}vh`,
+                pointerEvents: 'auto',
+                left: `${x}rem`,
+                top: `${y}rem`,
+                transform: 'translate(-50%, -50%)',
                 animation: 'scaleIn 0.75s ease-out',
                 opacity: limit > 0 ? 1 : 0,
-                transform: limit > 0 ? 'scale(1)' : 'scale(0)',
                 transition: 'opacity 0.75s ease-out, transform 0.75s ease-out',
                 background: 'transparent',
                 border: 'none',

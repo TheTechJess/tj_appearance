@@ -9,12 +9,12 @@ import { IconImport } from '../icons/IconImport';
 import { Menu } from '@mantine/core';
 
 const Outfits: React.FC = () => {
-        // Inject animation keyframes once
-        useEffect(() => {
-            if (!document.getElementById('fadeScaleIn-keyframes')) {
-                const styleSheet = document.createElement("style");
-                styleSheet.id = 'fadeScaleIn-keyframes';
-                styleSheet.innerText = `
+    // Inject animation keyframes once
+    useEffect(() => {
+        if (!document.getElementById('fadeScaleIn-keyframes')) {
+            const styleSheet = document.createElement("style");
+            styleSheet.id = 'fadeScaleIn-keyframes';
+            styleSheet.innerText = `
                 @keyframes fadeScaleIn {
                     0% {
                         opacity: 0;
@@ -26,9 +26,9 @@ const Outfits: React.FC = () => {
                     }
                 }
                 `;
-                document.head.appendChild(styleSheet);
-            }
-        }, []);
+            document.head.appendChild(styleSheet);
+        }
+    }, []);
     const { outfits, locale, jobData, editOutfit, useOutfit, shareOutfit, itemOutfit, deleteOutfit, saveOutfit, importOutfit } = useAppearanceStore();
 
     const [renameIndex, setRenameIndex] = useState<number>(-1);
@@ -125,8 +125,6 @@ const Outfits: React.FC = () => {
             className="appearance-scroll"
             style={{
                 padding: '0.25rem 0.75rem',
-                width: '18rem',
-                maxWidth: '400px',
                 height: "100%",
                 maxHeight: "100%",
                 overflowY: "auto",   // browser scroll only
@@ -146,7 +144,7 @@ const Outfits: React.FC = () => {
 
                                 fullWidth
                                 radius="md"
-                                style={{ fontWeight: 600, letterSpacing: 1, marginBottom: 4,background: "rgba(0,0,0,0.6)", }}
+                                style={{ fontWeight: 600, letterSpacing: 1, marginBottom: 4, background: "rgba(0,0,0,0.6)", }}
                                 onClick={() => setActiveDropdownIndex(activeDropdownIndex === i ? -1 : i)}
                             >
                                 {locale.OPTIONS_TITLE ?? "Options"}
@@ -234,8 +232,8 @@ const Outfits: React.FC = () => {
 
                                     {deleteIndex === i && (
                                         <Group spacing="xs" style={{ justifyContent: 'center', gap: '0.5vh', width: '100%', marginTop: '0.5vh' }}>
-                                            <Button size="xs"  radius="md" onClick={() => setDeleteIndex(-1)}>{locale.CANCEL_TITLE}</Button>
-                                            <Button size="xs"  color="red" radius="md" onClick={() => handleOutfitAction('delete', id)}>{locale.CONFIRMREM_SUBTITLE}</Button>
+                                            <Button size="xs" radius="md" onClick={() => setDeleteIndex(-1)}>{locale.CANCEL_TITLE}</Button>
+                                            <Button size="xs" color="red" radius="md" onClick={() => handleOutfitAction('delete', id)}>{locale.CONFIRMREM_SUBTITLE}</Button>
                                         </Group>
                                     )}
                                 </Paper>

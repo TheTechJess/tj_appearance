@@ -61,6 +61,7 @@ export const ColourDropdown: FC<ColourDropdownProps> = (props) => {
   const [display, setDisplay] = useState(
     value && typeof value === 'object' && 'label' in value && typeof value.label === 'string' ? value.label : ""
   );
+  const hasMountedRef = useRef(false);
 
   // Load colours on mount or when the colourType changes
   useEffect(() => {
@@ -76,16 +77,19 @@ export const ColourDropdown: FC<ColourDropdownProps> = (props) => {
 
       setColours(arr);
 
-      const fixedIndex = selectedIndex === -1 ? 0 : selectedIndex;
+      // Use the current index prop, not selectedIndex state
+      const fixedIndex = index === -1 ? 0 : index;
       const newValue = arr[fixedIndex] ?? arr[0];
 
       setSelectedIndex(fixedIndex);
       setDisplay(newValue && typeof newValue === 'object' && 'label' in newValue && typeof newValue.label === 'string' ? newValue.label : "");
-      onChange(newValue);
+      
+      // Mark as mounted after first load; don't call onChange on mount
+      hasMountedRef.current = true;
     };
 
     loadColours();
-  }, [colourType]);
+  }, [colourType, index]);
 
 
   // When user clicks a colour

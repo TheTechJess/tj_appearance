@@ -7,6 +7,7 @@ function SetHeadOverlay(ped, HeadBlendData)
 
     if HeadBlendData.id == 'hairColour' then
         SetPedHairTint(ped, HeadBlendData.hairColour, HeadBlendData.hairHighlight)
+        return -- Hair colour is handled above; skip overlay calls
     end
 
     local value = HeadBlendData.value or HeadBlendData.overlayValue

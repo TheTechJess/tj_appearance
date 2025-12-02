@@ -46,16 +46,16 @@ export const Hair: FC = () => {
     return (
         <Stack spacing="lg"
             className="appearance-scroll"
-            style={{
-                padding: '0.25rem 0.75rem',
-                width: '18rem',
-                maxWidth: '400px',
-                height: "100%",
-                maxHeight: "100%",
-                overflowY: "auto",   // browser scroll only
-                overflowX: "hidden",
-                paddingBottom: "2rem",  // ⬅️ Add bottom padding here
-            }}>
+        style={{
+            padding: '0.25rem 0.75rem',
+            width: '100%',
+            maxWidth: '100%',
+            height: "100%",
+            maxHeight: "100%",
+            overflowY: "auto",   // browser scroll only
+            overflowX: "hidden",
+            paddingBottom: "2rem",  // ⬅️ Add bottom padding here
+        }}>
             {drawTotal && drawTotal?.hair?.total > 0 ? (
                 <>
                     {/* HAIR */}
@@ -175,7 +175,7 @@ export const Hair: FC = () => {
                                 <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: {headOverlayTotal.FacialHair}</Text>
                             </Box>
                             <NumberStepper
-                                value={drawables?.hair.texture || 0}
+                                value={(headOverlay?.FacialHair?.overlayValue ?? 0)}
                                 min={0}
                                 max={headOverlayTotal.FacialHair}
                                 onChange={(value: number) => {
@@ -298,7 +298,7 @@ export const Hair: FC = () => {
                                 <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: {headOverlayTotal.ChestHair}</Text>
                             </Box>
                             <NumberStepper
-                                value={drawables?.hair.texture || 0}
+                                value={(headOverlay?.ChestHair?.overlayValue ?? 0)}
                                 min={0}
                                 max={headOverlayTotal.ChestHair}
                                 onChange={(value: number) => {
@@ -421,7 +421,7 @@ export const Hair: FC = () => {
                                 <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: {headOverlayTotal.Eyebrows}</Text>
                             </Box>
                             <NumberStepper
-                                value={drawables?.hair.texture || 0}
+                                value={(headOverlay?.Eyebrows?.overlayValue ?? 0)}
                                 min={0}
                                 max={headOverlayTotal.Eyebrows}
                                 onChange={(value: number) => {

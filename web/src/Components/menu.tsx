@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, lazy, Suspense, ComponentType } from 'react';
+import { FC, useState, useEffect, lazy, Suspense, ComponentType, useRef } from 'react';
 import { Box, Text, Divider } from '@mantine/core';
 import { useAppearanceStore } from '../Providers/AppearanceStoreProvider';
 import classes from './menu.module.css';
@@ -6,20 +6,50 @@ import classes from './menu.module.css';
 // Icon imports will be dynamic
 const iconCache: Record<string, ComponentType> = {};
 
-export const AppearanceMenu: FC = () => {
+interface AppearanceMenuProps {
+  animateIn?: boolean;
+  isVisible?: boolean;
+}
+
+export const AppearanceMenu: FC<AppearanceMenuProps> = ({ animateIn, isVisible }) => {
   const { selectedTab, locale } = useAppearanceStore();
   const [showContent, setShowContent] = useState(false);
+  const hasAnimatedRef = useRef(false);
   const [IconComponent, setIconComponent] = useState<ComponentType | null>(null);
   const [MenuComponent, setMenuComponent] = useState<ComponentType | null>(null);
 
-  // Show content after initial delay
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowContent(true);
-    }, 1250);
 
-    return () => clearTimeout(timer);
-  }, []);
+
+  // Show content after delay: 1500ms on first load, 100ms thereafter
+  useEffect(() => {
+    if (selectedTab) {
+      setShowContent(false);
+      const isInitial = !hasAnimatedRef.current;
+      const delay = isInitial ? 2000 : 100;
+      console.log('Selected tab changed, setting content timeout', hasAnimatedRef.current);
+      if (isInitial) {
+        hasAnimatedRef.current = true;
+      }
+      const timer = setTimeout(() => {
+        setShowContent(true);
+      }, delay);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedTab]);
+
+    // Trigger initial animation when animateIn becomes true for the first time
+  useEffect(() => {
+    if (animateIn && !hasAnimatedRef.current) {
+      hasAnimatedRef.current = true;
+    }
+  }, [animateIn]);
+
+  // Reset initial animation flag when UI hides
+  useEffect(() => {
+    if (!isVisible) {
+      hasAnimatedRef.current = false;
+    }
+  }, [isVisible]);
 
   // Load icon dynamically when tab changes
   useEffect(() => {
@@ -77,7 +107,7 @@ export const AppearanceMenu: FC = () => {
     <Box
       className={classes.menuContainer}
       style={{
-        width: '40vh',
+        width: '35vh',
         height: '100vh',
         position: 'absolute',
         right: 0,

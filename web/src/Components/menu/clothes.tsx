@@ -16,8 +16,6 @@ export const ClothesMenu: FC = () => {
             className="appearance-scroll"
             style={{
                 padding: '0.25rem 0.75rem',
-                width: '18rem',
-                maxWidth: '400px',
                 height: "100%",
                 maxHeight: "100%",
                 overflowY: "auto",   // browser scroll only
@@ -33,7 +31,7 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: {drawTotal.masks.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.masks.value || 0}
@@ -50,7 +48,7 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: {drawTotal.masks.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.masks.texture || 0}
@@ -78,7 +76,7 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: {drawTotal.jackets.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.jackets.value || 0}
@@ -95,7 +93,7 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale.TOTAL_SUBTITLE || 'Total'}: {drawTotal.jackets.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.jackets.texture || 0}

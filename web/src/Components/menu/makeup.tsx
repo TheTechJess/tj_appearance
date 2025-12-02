@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { Box, Button, Stack, Text, Grid, Divider } from '@mantine/core';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
-import type { THeadOverlay, THeadOverlayTotal} from '../../types/appearance';
+import type { THeadOverlay, THeadOverlayTotal } from '../../types/appearance';
 import { NumberStepper } from '../micro/NumberStepper';
 import { ColourDropdown } from '../micro/ColourDropdown';
 
@@ -9,7 +9,7 @@ import { ColourDropdown } from '../micro/ColourDropdown';
 // Makeup Menu Component.
 
 export const MakeupMenu: FC = () => {
-    const { appearance, setHeadOverlay,setEyeColour, locale } = useAppearanceStore();
+    const { appearance, setHeadOverlay, setEyeColour, locale } = useAppearanceStore();
 
     const headOverlay = appearance?.headOverlay as THeadOverlay;
     const headOverlayTotal = appearance?.headOverlayTotal as THeadOverlayTotal;
@@ -35,8 +35,8 @@ export const MakeupMenu: FC = () => {
             className="appearance-scroll"
             style={{
                 padding: '0.25rem 0.75rem',
-                width: '18rem',
-                maxWidth: '400px',
+                width: '100%',
+                maxWidth: '100%',
                 height: "100%",
                 maxHeight: "100%",
                 overflowY: "auto",   // browser scroll only

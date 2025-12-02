@@ -46,16 +46,14 @@ export const Face: FC = () => {
     return (
         <Stack spacing="lg"
             className="appearance-scroll"
-            style={{
-                padding: '0.25rem 0.75rem',
-                width: '18rem',
-                maxWidth: '400px',
-                height: "100%",
-                maxHeight: "100%",
-                overflowY: "auto",   // browser scroll only
-                overflowX: "hidden",
-                paddingBottom: "2rem",  // ⬅️ Add bottom padding here
-            }}>
+        style={{
+            padding: '0.25rem 0.75rem',
+            height: "100%",
+            maxHeight: "100%",
+            overflowY: "auto",   // browser scroll only
+            overflowX: "hidden",
+            paddingBottom: "2rem",  // ⬅️ Add bottom padding here
+        }}>
             {data && Object.keys(data).length > 0 ? (
                 <>
                     {/* Ageing overlay block (guarded with optional chaining) */}
