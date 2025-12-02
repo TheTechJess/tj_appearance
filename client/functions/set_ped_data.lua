@@ -123,38 +123,31 @@ exports('SetPedFaceFeatures', SetFaceFeatures)
 --  NUI CALLBACKS --
 
 RegisterNuiCallback('setHeadBlend', function(data, cb)
-    print('Setting head blend')
     SetPedHeadBlend(cache.ped, data)
     cb(1)
 end)
 
 RegisterNuiCallback('setHeadOverlay', function(data, cb)
-    print('Setting head overlay')
-    print(json.encode(data))
     SetHeadOverlay(cache.ped, data)
     cb(1)
 end)
 
 RegisterNuiCallback('setHeadStructure', function(data, cb)
-    print('Setting head structure')
     SetFaceFeatures(cache.ped, data)
     cb(1)
 end)
 
 RegisterNuiCallback('setHeadStructure', function(data, cb)
-    print('Setting head structure')
     SetFaceFeatures(cache.ped, data)
     cb(1)
 end)
 
 RegisterNuiCallback('setDrawable', function(data, cb)
-    print('Setting drawable')
     local totalTextures = SetDrawable(cache.ped, data)
     cb(1)
 end)
 
 RegisterNuiCallback('setModel', function(data, cb)
     local model = SetModel(cache.ped, data[1])
-    print('Model set to ', model)
     cb(model)
 end)
