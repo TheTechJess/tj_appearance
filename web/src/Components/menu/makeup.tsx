@@ -4,12 +4,14 @@ import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { THeadOverlay, THeadOverlayTotal } from '../../types/appearance';
 import { NumberStepper } from '../micro/NumberStepper';
 import { ColourDropdown } from '../micro/ColourDropdown';
+import { useCustomization } from '../../Providers/CustomizationProvider';
 
 
 // Makeup Menu Component.
 
 export const MakeupMenu: FC = () => {
     const { appearance, setHeadOverlay, setEyeColour, locale } = useAppearanceStore();
+    const { theme } = useCustomization();
 
     const headOverlay = appearance?.headOverlay as THeadOverlay;
     const headOverlayTotal = appearance?.headOverlayTotal as THeadOverlayTotal;
@@ -153,7 +155,7 @@ export const MakeupMenu: FC = () => {
                                         }}
                                         style={{
                                             flex: 1,
-                                            accentColor: '#5c7cfa',
+                                            accentColor: theme.primaryColor,
                                             height: '0.375rem',
                                             cursor: 'pointer',
                                         }}
@@ -303,7 +305,7 @@ export const MakeupMenu: FC = () => {
                                         }
                                         style={{
                                             flex: 1,
-                                            accentColor: '#5c7cfa',
+                                            accentColor: theme.primaryColor,
                                             height: '0.375rem',
                                             cursor: 'pointer',
                                         }}
@@ -419,7 +421,7 @@ export const MakeupMenu: FC = () => {
                                         }
                                         style={{
                                             flex: 1,
-                                            accentColor: '#5c7cfa',
+                                            accentColor: theme.primaryColor,
                                             height: '0.375rem',
                                             cursor: 'pointer',
                                         }}

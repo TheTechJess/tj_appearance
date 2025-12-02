@@ -12,6 +12,11 @@
   padding: 0 !important;
 }
 
+/* Global slider accent color bound to theme */
+input[type="range"] {
+  accent-color: var(--tj-primary) !important;
+}
+
 ::-webkit-scrollbar {
   background: none !important;
   width: 0 !important;

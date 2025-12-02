@@ -3,6 +3,7 @@ import { Box, TextInput, Button, Stack, Text, Grid, Divider } from '@mantine/cor
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { THeadBlend } from '../../types/appearance';
 import { NumberStepper } from '../micro/NumberStepper';
+import { useCustomization } from '../../Providers/CustomizationProvider';
 
 export const Heritage: FC = () => {
     const {
@@ -22,6 +23,7 @@ export const Heritage: FC = () => {
     const currentPed = models?.[currentPedIndex] || '';
     const [modelSearch, setModelSearch] = useState('');
     const [showModelDropdown, setShowModelDropdown] = useState(false);
+    const { theme } = useCustomization();
 
     const updateParents = (key: keyof THeadBlend, value: number) => {
         if (currentPedIndex !== 0 && currentPedIndex !== 1) return;
@@ -169,6 +171,7 @@ export const Heritage: FC = () => {
                                             transform: translateY(0);
                                             maxHeight: 300px;
                                         }
+                                        const { theme } = useCustomization();
                                     }
                                 `}
                             </style>
@@ -378,7 +381,7 @@ export const Heritage: FC = () => {
                                         onChange={(e) => updateParents('shapeMix', parseFloat(e.currentTarget.value))}
                                         style={{
                                             flex: 1,
-                                            accentColor: '#5c7cfa',
+                                            accentColor: theme.primaryColor,
                                             height: '0.375rem',
                                             cursor: 'pointer'
                                         }}
@@ -414,7 +417,7 @@ export const Heritage: FC = () => {
                                         onChange={(e) => updateParents('thirdMix', parseFloat(e.currentTarget.value))}
                                         style={{
                                             flex: 1,
-                                            accentColor: '#5c7cfa',
+                                            accentColor: theme.primaryColor,
                                             height: '0.375rem',
                                             cursor: 'pointer'
                                         }}
@@ -474,7 +477,7 @@ export const Heritage: FC = () => {
                                     onChange={(e) => updateParents('skinMix', parseFloat(e.currentTarget.value))}
                                     style={{
                                         flex: 1,
-                                        accentColor: '#5c7cfa',
+                                        accentColor: theme.primaryColor,
                                         height: '0.375rem',
                                         cursor: 'pointer'
                                     }}

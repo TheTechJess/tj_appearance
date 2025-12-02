@@ -20,21 +20,21 @@ const VisibilityProviderContext = createContext<VisibilityProviderValue | null>(
 export const VisibilityProvider: FC<{children: ReactNode, component: string}> = ({children, component}) => {
   const [visible, setVisible] = useState(false);
   HandleNuiMessage<boolean>(`setVisible${component}`, setVisible);
-  useEffect(() => {
-    if (visible) {
-      const keyHandler = (keyboardEvent: KeyboardEvent) => {
-        if (['Backspace', 'Escape'].includes(keyboardEvent.key)) {
-          if (!IsRunningInBrowser()) {
-            TriggerNuiCallback('hideComponent', {action: `setVisible${component}`, data: false});
-          } else {
-            setVisible(false);
-          };
-        };
-      };
-      window.addEventListener('keydown', keyHandler);
-      return () => window.removeEventListener('keydown', keyHandler);
-    };
-  }, [visible, component]);
+  // useEffect(() => {
+  //   if (visible) {
+  //     const keyHandler = (keyboardEvent: KeyboardEvent) => {
+  //       if (['Backspace', 'Escape'].includes(keyboardEvent.key)) {
+  //         if (!IsRunningInBrowser()) {
+  //           TriggerNuiCallback('hideComponent', {action: `setVisible${component}`, data: false});
+  //         } else {
+  //           setVisible(false);
+  //         };
+  //       };
+  //     };
+  //     window.addEventListener('keydown', keyHandler);
+  //     return () => window.removeEventListener('keydown', keyHandler);
+  //   };
+  // }, [visible, component]);
   return (
     <VisibilityProviderContext.Provider value={{visible, setVisible}}>
       <div style={{visibility: visible ? 'visible': 'hidden'}}>

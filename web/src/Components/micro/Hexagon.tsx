@@ -4,12 +4,14 @@ interface HexagonProps {
   active?: boolean;
   variant?: 'default' | 'success' | 'error';
   strokeWidth?: string;
+  themeColor?: string;
 }
 
 export const Hexagon: FC<HexagonProps> = ({ 
   active = false, 
   variant = 'default',
-  strokeWidth = '0.5vh'
+  strokeWidth = '0.5vh',
+  themeColor = '#3b82f6'
 }) => {
   const getStrokeColor = () => {
     if (active) {
@@ -19,7 +21,7 @@ export const Hexagon: FC<HexagonProps> = ({
         case 'error':
           return '#ef4444'; // red-500
         default:
-          return '#3b82f6'; // blue-500
+          return themeColor;
       }
     }
     return 'rgba(255, 255, 255, 0.3)';
@@ -33,7 +35,12 @@ export const Hexagon: FC<HexagonProps> = ({
         case 'error':
           return 'rgba(239, 68, 68, 0.2)';
         default:
-          return 'rgba(59, 130, 246, 0.2)';
+          // Convert hex to rgba with 0.2 opacity
+          const hex = themeColor.replace('#', '');
+          const r = parseInt(hex.substring(0, 2), 16);
+          const g = parseInt(hex.substring(2, 4), 16);
+          const b = parseInt(hex.substring(4, 6), 16);
+          return `rgba(${r}, ${g}, ${b}, 0.2)`;
       }
     }
     return 'rgba(0, 0, 0, 0.6)';

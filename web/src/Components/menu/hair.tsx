@@ -4,6 +4,7 @@ import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { TColours, THairColour, THeadOverlay } from '../../types/appearance';
 import { NumberStepper } from '../micro/NumberStepper';
 import { ColourDropdown } from '../micro/ColourDropdown';
+import { useCustomization } from '../../Providers/CustomizationProvider';
 
 
 // Styled Number Stepper Component
@@ -39,6 +40,7 @@ export const Hair: FC = () => {
     const headOverlay = appearance?.headOverlay as THeadOverlay;
     const headOverlayTotal = appearance?.headOverlayTotal;
     const hairColour = appearance?.hairColour;
+    const { theme } = useCustomization();
 
 
     return (
@@ -269,7 +271,7 @@ export const Hair: FC = () => {
                                 }}
                                 style={{
                                     flex: 1,
-                                    accentColor: '#5c7cfa',
+                                    accentColor: theme.primaryColor,
                                     height: '0.375rem',
                                     cursor: 'pointer',
                                 }}
@@ -392,7 +394,7 @@ export const Hair: FC = () => {
                                 }}
                                 style={{
                                     flex: 1,
-                                    accentColor: '#5c7cfa',
+                                    accentColor: theme.primaryColor,
                                     height: '0.375rem',
                                     cursor: 'pointer',
                                 }}
@@ -515,7 +517,7 @@ export const Hair: FC = () => {
                                 }}
                                 style={{
                                     flex: 1,
-                                    accentColor: '#5c7cfa',
+                                    accentColor: theme.primaryColor,
                                     height: '0.375rem',
                                     cursor: 'pointer',
                                 }}

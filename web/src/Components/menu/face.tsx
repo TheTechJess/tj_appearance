@@ -3,6 +3,7 @@ import { Box, Button, Stack, Text, Grid, Divider } from '@mantine/core';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { THeadStructure, THeadOverlay, THeadOverlayTotal } from '../../types/appearance';
 import { NumberStepper } from '../micro/NumberStepper';
+import { useCustomization } from '../../Providers/CustomizationProvider';
 
 
 
@@ -20,6 +21,7 @@ export const Face: FC = () => {
     const data = (appearance?.headStructure as THeadStructure) || {};
     const headdata = (appearance?.headOverlay as THeadOverlay) || {};
     const headOverlayTotal = (appearance?.headOverlayTotal || {}) as THeadOverlayTotal;
+    const { theme } = useCustomization();
 
     // No local state sync needed
 
@@ -114,7 +116,7 @@ export const Face: FC = () => {
                                                         }
                                                         style={{
                                                             flex: 1,
-                                                            accentColor: '#5c7cfa',
+                                                            accentColor: theme.primaryColor,
                                                             height: '0.375rem',
                                                             cursor: 'pointer',
                                                         }}

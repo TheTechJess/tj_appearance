@@ -1,12 +1,13 @@
 import { FC, useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Box, Button, Modal, Stack, Text } from '@mantine/core';
-import { Hexagon } from './micro/Hexagon';
+import { CameraShape } from './micro/CameraShape';
 import { IconCancel } from './icons/IconCancel';
 import { IconSave } from './icons/IconSave';
 import { IconLock } from './icons/IconLock';
 import { IconToggle } from './icons/IconToggle';
 import { IconHat, IconMask, IconGlasses, IconShirt, IconJacket, IconVest, IconPants, IconShoes } from './icons/ToggleIcons';
 import { useAppearanceStore } from '../Providers/AppearanceStoreProvider';
+import { useCustomization } from '../Providers/CustomizationProvider';
 import { TriggerNuiCallback } from '../Utils/TriggerNuiCallback';
 import { Send } from '../enums/events';
 import type { TTab, TDrawables, TProps } from '../types/appearance';
@@ -104,6 +105,16 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
     toggles,
     toggleItem,
   } = useAppearanceStore();
+  
+  const { theme, shape } = useCustomization();
+
+  const hexToRgba = (hex: string, alpha = 0.2) => {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16);
+    const g = parseInt(h.substring(2, 4), 16);
+    const b = parseInt(h.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
 
   const [limit, setLimit] = useState<number>(0);
   const [showToggles, setShowToggles] = useState<boolean>(false);
@@ -278,7 +289,12 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
                   transition: 'transform 0.15s ease-in-out',
                 }}
               >
-                <Hexagon active={selected} />
+                <CameraShape
+                  type={shape.type}
+                  stroke={selected ? theme.primaryColor : theme.inactiveColor}
+                  fill={selected ? hexToRgba(theme.primaryColor, 0.2) : hexToRgba(theme.inactiveColor, 0.2)}
+                  strokeWidth={2}
+                />
                 <Box
                   style={{
                     width: '100%',
@@ -339,7 +355,7 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
                 transition: 'transform 0.15s ease-in-out',
               }}
             >
-              <Hexagon active={true} variant="error" strokeWidth="1vh" />
+              <CameraShape type={shape.type} stroke={'#ef4444'} fill={'rgba(239,68,68,0.2)'} strokeWidth={6} />
               <Box
                 style={{
                   width: '3vh',
@@ -387,7 +403,7 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
               transition: 'transform 0.15s ease-in-out',
             }}
           >
-            <Hexagon active={true} variant="success" />
+            <CameraShape type={shape.type} stroke={'#10b981'} fill={'rgba(16,185,129,0.2)'} strokeWidth={4} />
             <Box
               style={{
                 width: '8vh',
@@ -438,7 +454,12 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
               transition: 'transform 0.15s ease-in-out',
             }}
           >
-            <Hexagon active={showToggles} strokeWidth="1vh" />
+            <CameraShape
+              type={shape.type}
+              stroke={showToggles ? theme.primaryColor : theme.inactiveColor}
+              fill={showToggles ? hexToRgba(theme.primaryColor, 0.2) : hexToRgba(theme.inactiveColor, 0.2)}
+              strokeWidth={6}
+            />
             <Box
               style={{
                 width: '100%',
@@ -515,7 +536,12 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
                     },
                   }}
                 >
-                  <Hexagon active={toggle} />
+                  <CameraShape
+                    type={shape.type}
+                    stroke={toggle ? theme.primaryColor : theme.inactiveColor}
+                    fill={toggle ? hexToRgba(theme.primaryColor, 0.2) : hexToRgba(theme.inactiveColor, 0.2)}
+                    strokeWidth={4}
+                  />
                   <Box
                     style={{
                       width: '4vh',

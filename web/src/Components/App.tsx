@@ -7,6 +7,8 @@ import { HandleNuiMessage } from '../Hooks/HandleNuiMessage';
 import { useClipboard } from '@mantine/hooks';
 import { useDebugDataReceiver } from '../Hooks/useDebugDataReceiver';
 import { IsRunningInBrowser } from '../Utils/Misc';
+import { useCustomization } from '../Providers/CustomizationProvider';
+import { CameraShape } from './micro/CameraShape';
 
 import { AppearanceMenu } from './menu';
 import { AppearanceNav } from './nav';
@@ -19,12 +21,15 @@ export const App: FC = () => {
   const [playerInformation, setPlayerInformation] = useState<PlayerInformation | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
+  const { theme, shape } = useCustomization();
 
   // Camera overlay state (converted from Svelte)
   const levels = useMemo(() => ['whole', 'head', 'torso', 'legs', 'shoes'] as const, []);
   const [currentLevel, setCurrentLevel] = useState(0);
   const level = levels[currentLevel];
   const isMouseDownRef = useRef(false);
+  const circleRef = useRef<HTMLDivElement | null>(null);
+  const dragConfigRef = useRef<{ cx: number; cy: number; radius: number } | null>(null);
 
   // Listen for debug data
   useDebugDataReceiver();
@@ -63,20 +68,28 @@ export const App: FC = () => {
     }
   });
 
-  // Mouse move handler for camera drag (only when mouse is down on overlay)
+  // Mouse move handler for camera drag (only when mouse is down and inside circle)
   useEffect(() => {
     if (!isVisible || IsRunningInBrowser()) return;
 
     const onMouseMove = (e: MouseEvent) => {
       if (!isMouseDownRef.current) return;
+      const cfg = dragConfigRef.current;
+      if (cfg) {
+        const dxp = e.clientX - cfg.cx;
+        const dyp = e.clientY - cfg.cy;
+        const inside = (dxp * dxp + dyp * dyp) <= (cfg.radius * cfg.radius);
+        if (!inside) return; // ignore movement outside the circular overlay
+      }
       const moveX = e.movementX;
       const moveY = e.movementY;
       const x = moveX / 8;
       const y = moveY / 8;
-      TriggerNuiCallback<void>('camMove', { x, y }).catch(() => {});
+      TriggerNuiCallback<void>('camMove', { x, y }).catch(() => { });
     };
     const onMouseUp = () => {
       isMouseDownRef.current = false;
+      dragConfigRef.current = null;
     };
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
@@ -92,7 +105,7 @@ export const App: FC = () => {
         ? (prev + 1) % levels.length
         : (prev - 1 + levels.length) % levels.length;
       const nextLevel = levels[next];
-      TriggerNuiCallback<void>('camSection', nextLevel).catch(() => {});
+      TriggerNuiCallback<void>('camSection', nextLevel).catch(() => { });
       return next;
     });
   }, [levels]);
@@ -116,21 +129,36 @@ export const App: FC = () => {
             cursor: 'grab',
             zIndex: 0,
           }}
-          onMouseDown={() => { isMouseDownRef.current = true; }}
+          ref={circleRef}
+          onMouseDown={(e) => {
+            const el = circleRef.current;
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const radius = Math.min(rect.width, rect.height) / 2;
+            const dx = e.clientX - cx;
+            const dy = e.clientY - cy;
+            const inside = (dx * dx + dy * dy) <= (radius * radius);
+            if (!inside) {
+              isMouseDownRef.current = false;
+              dragConfigRef.current = null;
+              return;
+            }
+            dragConfigRef.current = { cx, cy, radius };
+            isMouseDownRef.current = true;
+            e.stopPropagation();
+            e.preventDefault();
+          }}
         >
           {/* Level controls */}
           <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translate(-50%, -50%)', width: '5vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1vh' }}>
-            <button
-              onClick={() => setLevel('up')}
-              style={{ width: '100%', height: '4vh', background: 'rgba(0,0,0,0.6)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8 }}
-            >
-              ▲
+            <button onClick={() => setLevel('up')} style={{ width: '100%', height: '4vh', background: 'rgba(0,0,0,0.6)', color: 'white', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8 }} >
+            ▲
             </button>
             {/* Hexagon with level icon */}
             <div style={{ width: '7vh', height: '7vh', position: 'relative', display: 'grid', placeItems: 'center' }}>
-              <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-                <polygon points="25,4 75,4 96,50 75,96 25,96 4,50" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.3)" strokeWidth={4} />
-              </svg>
+              <CameraShape type={shape.type} />
               {/* Icon in the middle */}
               <svg viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, padding: '12%', color: 'white' }}>
                 {level === 'whole' && (
