@@ -11,7 +11,6 @@ local CAM_CONFIG = Config.Camera
 --  - applies a small Z offset when boneKey == 'head' to frame slightly higher
 local function GetSectionCoords(entry, boneKey)
 
-  print('GetSectionCoords called with entry: ' .. tostring(entry))
   if entry == 0 then
     local pos = GetEntityCoords(cache.ped)
     if boneKey == 'head' then
@@ -39,7 +38,7 @@ local function GetSectionCoords(entry, boneKey)
       -- midpoint
       local pos = vector3((ca.x + cb.x) * 0.5, (ca.y + cb.y) * 0.5, (ca.z + cb.z) * 0.5)
       if boneKey == 'head' then
-        local dz = CAM_CONFIG.Head_Z_Offset or 0.16
+        local dz = CAM_CONFIG.Head_Z_Offset or 0.06
         return vector3(pos.x, pos.y, pos.z + dz)
       end
       return pos
@@ -100,7 +99,6 @@ function SetCamera(cameratype)
   if boneEntry == nil then return end
 
   local coords = GetSectionCoords(boneEntry, cameratype)
-  print(('Setting camera to "%s" at coords: %.2f, %.2f, %.2f'):format(tostring(cameratype), coords.x, coords.y, coords.z))
   MoveCamera(coords)
 end
 
