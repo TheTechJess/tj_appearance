@@ -14,10 +14,10 @@ Config.Prices = {
 Config.Camera = {
     Body_Distance = 2.0, -- Distance of the camera from the player
     Default_Distance = 1.0, -- Default distance for close-up views
-
+    Head_Z_Offset = 0.16, -- Vertical offset for head camera position
     Bones = {
-        body = 0,
-        head = 31086,
+        whole = 0,
+        head = 12844,
         torso = 24818,
         legs = {16335, 46078},
         shoes = {14201, 52301}

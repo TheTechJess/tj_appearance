@@ -4,6 +4,64 @@ local currentBone = nil
 local angleY, angleZ = 0.0, 0.0
 local CAM_CONFIG = Config.Camera
 
+-- Resolve a bone entry to world coordinates. Supports:
+--  - number 0: entity center
+--  - single bone id (number)
+--  - array/table of bone ids: returns midpoint between first two bones
+--  - applies a small Z offset when boneKey == 'head' to frame slightly higher
+local function GetSectionCoords(entry, boneKey)
+
+  print('GetSectionCoords called with entry: ' .. tostring(entry))
+  if entry == 0 then
+    local pos = GetEntityCoords(cache.ped)
+    if boneKey == 'head' then
+      local dz = CAM_CONFIG.Head_Z_Offset or 0.06
+      return vector3(pos.x, pos.y, pos.z + dz)
+    end
+    return pos
+  end
+
+  if type(entry) == 'number' then
+    local pos = GetPedBoneCoords(cache.ped, entry, 0.0, 0.0, 0.0)
+    if boneKey == 'head' then
+      local dz = CAM_CONFIG.Head_Z_Offset or 0.06
+      return vector3(pos.x, pos.y, pos.z + dz)
+    end
+    return pos
+  end
+
+  if type(entry) == 'table' then
+    local a = entry[1]
+    local b = entry[2]
+    if type(a) == 'number' and type(b) == 'number' then
+      local ca = GetPedBoneCoords(cache.ped, a, 0.0, 0.0, 0.0)
+      local cb = GetPedBoneCoords(cache.ped, b, 0.0, 0.0, 0.0)
+      -- midpoint
+      local pos = vector3((ca.x + cb.x) * 0.5, (ca.y + cb.y) * 0.5, (ca.z + cb.z) * 0.5)
+      if boneKey == 'head' then
+        local dz = CAM_CONFIG.Head_Z_Offset or 0.16
+        return vector3(pos.x, pos.y, pos.z + dz)
+      end
+      return pos
+    elseif type(a) == 'number' then
+      local pos = GetPedBoneCoords(cache.ped, a, 0.0, 0.0, 0.0)
+      if boneKey == 'head' then
+        local dz = CAM_CONFIG.Head_Z_Offset or 0.06
+        return vector3(pos.x, pos.y, pos.z + dz)
+      end
+      return pos
+    end
+  end
+
+  -- fallback to entity coords
+  local pos = GetEntityCoords(cache.ped)
+  if boneKey == 'head' then
+    local dz = CAM_CONFIG.Head_Z_Offset or 0.06
+    return vector3(pos.x, pos.y, pos.z + dz)
+  end
+  return pos
+end
+
 function ToggleCam(state)
   if state then
     if cameraactive then return end
@@ -17,7 +75,7 @@ function ToggleCam(state)
 
     cameraDistance = Config.Camera.Body_Distance
 
-    SetCamera('body')
+    SetCamera('whole')
   else
     if not cameraactive then return end
     cameraactive = false
@@ -31,10 +89,18 @@ function SetCamera(cameratype)
   if not cameraactive then return end
 
   currentBone = cameratype
-  local boneIndex = CAM_CONFIG.Bones[cameratype]
-  if not boneIndex then return end
+  local boneEntry = CAM_CONFIG.Bones[cameratype]
 
-  local coords = boneIndex == 0 and GetEntityCoords(cache.ped) or GetPedBoneCoords(cache.ped, boneIndex, 0.0, 0.0, 0.0)
+  if cameratype == 'whole' then
+    cameraDistance = Config.Camera.Body_Distance
+  else
+    cameraDistance = Config.Camera.Default_Distance
+  end
+
+  if boneEntry == nil then return end
+
+  local coords = GetSectionCoords(boneEntry, cameratype)
+  print(('Setting camera to "%s" at coords: %.2f, %.2f, %.2f'):format(tostring(cameratype), coords.x, coords.y, coords.z))
   MoveCamera(coords)
 end
 
@@ -86,7 +152,7 @@ function SetCamPosition(data)
   local boneIndex = CAM_CONFIG.Bones[currentBone]
   if not boneIndex then return end
 
-  local coords = boneIndex == 0 and GetEntityCoords(cache.ped) or GetPedBoneCoords(cache.ped, boneIndex, 0.0, 0.0, 0.0)
+  local coords = GetSectionCoords(boneIndex, currentBone)
   local angles = GetAngles()
 
   SetCamCoord(camera, coords.x + angles.x, coords.y + angles.y, coords.z + angles.z)
@@ -111,7 +177,7 @@ function GetAngles()
 end
 
 RegisterNuiCallback('scrollWheel', function(direction, cb)
-  local maxZoom = currentBone == 'body' and CAM_CONFIG.Body_Distance or CAM_CONFIG.Default_Distance
+  local maxZoom = currentBone == 'whole' and CAM_CONFIG.Body_Distance or CAM_CONFIG.Default_Distance
 
   if direction == 'in' then
     cameraDistance = math.max(0.2, cameraDistance - 0.05)
@@ -119,5 +185,21 @@ RegisterNuiCallback('scrollWheel', function(direction, cb)
     cameraDistance = math.min(maxZoom, cameraDistance + 0.05)
   end
   SetCamPosition()
+  cb('ok')
+end)
+
+-- Move camera by mouse drag deltas { x, y }
+RegisterNuiCallback('camMove', function(data, cb)
+  if type(data) == 'table' and data.x and data.y then
+    SetCamPosition({ x = data.x, y = data.y })
+  end
+  cb('ok')
+end)
+
+-- Change camera section: 'whole' | 'head' | 'torso' | 'legs' | 'shoes'
+RegisterNuiCallback('camSection', function(section, cb)
+  if type(section) == 'string' then
+    SetCamera(section)
+  end
   cb('ok')
 end)
