@@ -1,6 +1,5 @@
 -- Guard: ensure qb-core is started before loading (QBox is based on QBCore)
 if GetResourceState('qb-core') ~= 'started' then
-    print('[tj_appearance] Skipping qbox framework: qb-core not started')
     return
 end
 

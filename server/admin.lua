@@ -9,7 +9,6 @@ local SettingsCache = nil
 
 -- Load all restrictions into cache on startup
 local function LoadRestrictionsCache()
-    print('[tj_appearance] Loading restrictions into cache...')
     local result = MySQL.query.await('SELECT * FROM appearance_restrictions ORDER BY job, gang, gender')
     
     RestrictionsCache = {}
@@ -37,8 +36,6 @@ local function LoadRestrictionsCache()
             textures = row.textures and json.decode(row.textures) or nil
         })
     end
-    
-    print('[tj_appearance] Loaded ' .. #(result or {}) .. ' restrictions into cache')
 end
 
 -- Load theme into cache
@@ -55,7 +52,6 @@ local function LoadThemeCache()
             inactiveColor = '#8b5cf6'
         }
     end
-    print('[tj_appearance] Theme cache loaded')
 end
 
 -- Load shape into cache
@@ -66,7 +62,6 @@ local function LoadShapeCache()
     else
         ShapeCache = { type = 'hexagon' }
     end
-    print('[tj_appearance] Shape cache loaded')
 end
 
 -- Load models into cache
@@ -76,18 +71,15 @@ local function LoadModelsCache()
     for _, row in ipairs(result or {}) do
         table.insert(ModelsCache, row.model_name)
     end
-    print('[tj_appearance] Loaded ' .. #ModelsCache .. ' models into cache')
 end
 
 -- Load settings into cache
 local function LoadSettingsCache()
-    print('[tj_appearance] LoadSettingsCache called')
     local success, result = pcall(function()
         return MySQL.query.await('SELECT * FROM appearance_settings LIMIT 1')
     end)
     
     if not success then
-        print('[tj_appearance] ^3Warning: appearance_settings table not found. Run database_schema.sql to create it.^0')
         SettingsCache = {
             lockedModels = {}
         }
@@ -98,12 +90,10 @@ local function LoadSettingsCache()
         SettingsCache = {
             lockedModels = result[1].locked_models and json.decode(result[1].locked_models) or {}
         }
-        print('[tj_appearance] Settings cache loaded - Locked Models: ' .. #SettingsCache.lockedModels)
     else
         SettingsCache = {
             lockedModels = {}
         }
-        print('[tj_appearance] Settings cache initialized (no data in table)')
     end
 end
 
@@ -149,14 +139,12 @@ end)
 -- Save cache to database on resource stop
 AddEventHandler('onResourceStop', function(resourceName)
     if GetCurrentResourceName() ~= resourceName then return end
-    print('[tj_appearance] Resource stopping, cache is already persisted in DB')
 end)
 
 -- Admin permission check
 local function IsAdmin(source)
     -- Check for ACE permission
     local isAdmin = IsPlayerAceAllowed(source, 'command')
-    print('[tj_appearance] IsAdmin check for ' .. GetPlayerName(source) .. ': ' .. tostring(isAdmin))
     return isAdmin
 end
 
@@ -231,7 +219,6 @@ lib.callback.register('tj_appearance:admin:saveSettings', function(source, setti
     -- Update cache
     SettingsCache = settings
     
-    print('[tj_appearance] Settings updated - Locked Models:', #(settings.lockedModels or {}))
     return true
 end)
 
@@ -312,7 +299,6 @@ lib.callback.register('tj_appearance:admin:deleteModels', function(source, model
         end
     end
     
-    print('[tj_appearance] Deleted ' .. deletedCount .. ' models')
     return true
 end)
 
@@ -401,7 +387,6 @@ lib.callback.register('tj_appearance:getPlayerRestrictions', function(source)
                     if modelIndex and sortedModels[modelIndex + 1] then
                         local modelName = sortedModels[modelIndex + 1]
                         allowedModels[modelName] = true
-                        print('[tj_appearance] Granting access to model:', modelName, 'for job/gang:', job or gang)
                     end
                 end
                 
@@ -464,18 +449,11 @@ lib.callback.register('tj_appearance:getPlayerRestrictions', function(source)
     
     -- Add locked models to blacklist unless player has explicit access via restrictions
     if SettingsCache and SettingsCache.lockedModels then
-        print('[tj_appearance] Processing locked models for player. Job:', job, 'Gang:', gang or 'none')
-        print('[tj_appearance] Allowed models count:', #allowedModels)
-        for model, _ in pairs(allowedModels) do
-            print('[tj_appearance] Player has access to:', model)
-        end
-        
         for _, lockedModel in ipairs(SettingsCache.lockedModels) do
             -- Skip freemode models (always allowed)
             if lockedModel ~= 'mp_m_freemode_01' and lockedModel ~= 'mp_f_freemode_01' then
                 -- Only blacklist if player doesn't have explicit access
                 if not allowedModels[lockedModel] then
-                    print('[tj_appearance] Blacklisting locked model:', lockedModel)
                     -- Check if already in blacklist to avoid duplicates
                     local alreadyBlacklisted = false
                     for _, m in ipairs(out.male.models) do
@@ -488,8 +466,6 @@ lib.callback.register('tj_appearance:getPlayerRestrictions', function(source)
                         table.insert(out.male.models, lockedModel)
                         table.insert(out.female.models, lockedModel)
                     end
-                else
-                    print('[tj_appearance] Allowing locked model due to restriction:', lockedModel)
                 end
             end
         end
@@ -565,14 +541,10 @@ end)
 
 -- Command to open admin menu
 RegisterCommand('appearanceadmin', function(source)
-    print('[tj_appearance] appearanceadmin command called by source: ' .. source)
-    
     if not IsAdmin(source) then
-        print('[tj_appearance] Access denied for ' .. GetPlayerName(source))
         TriggerClientEvent('QBCore:Notify', source, 'You do not have permission', 'error')
         return
     end
     
-    print('[tj_appearance] Opening admin menu for ' .. GetPlayerName(source))
     TriggerClientEvent('tj_appearance:client:openAdminMenu', source)
 end, false)

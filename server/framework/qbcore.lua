@@ -1,6 +1,5 @@
 -- Guard: ensure qb-core is started before loading
 if GetResourceState('qb-core') ~= 'started' then
-    print('[tj_appearance] Skipping qbcore framework: qb-core not started')
     return
 end
 

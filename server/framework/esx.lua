@@ -1,6 +1,5 @@
 -- Guard: ensure es_extended is started before loading
 if GetResourceState('es_extended') ~= 'started' then
-    print('[tj_appearance] Skipping esx framework: es_extended not started')
     return
 end
 

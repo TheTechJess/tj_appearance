@@ -171,7 +171,6 @@ RegisterNuiCallback('setDrawable', function(data, cb)
 end)
 
 RegisterNuiCallback('setModel', function(data, cb)
-    print('[tj_appearance] setModel called with data:', json.encode(data))
     local modelString = data -- Store the original model string
     local model = SetModel(cache.ped, data)
     

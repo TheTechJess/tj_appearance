@@ -6,18 +6,14 @@ RegisterCommand('appearance', function()
   local localeFile = LoadResourceFile(GetCurrentResourceName(), "shared/locale/en.json")
 
   if not localeFile then
-    print("^1[ERROR] Could not load locale file!^0")
     return
   end
 
   local locale = json.decode(localeFile)
 
   if not locale then
-    print("^1[ERROR] Could not decode locale JSON!^0")
     return
   end
-
-  print("^2[SUCCESS] Loaded locale successfully^0")
 
   -- Get player's current model to determine gender
   local model = GetEntityModel(cache.ped)
@@ -37,7 +33,6 @@ RegisterCommand('appearance', function()
   end)
   
   lib.callback('tj_appearance:admin:getRestrictions', false, function(restrictions)
-    print('[tj_appearance] Restrictions count:', #restrictions)
     if restrictions then
       handleNuiMessage({ action = 'setRestrictions', data = restrictions }, true)
     end
@@ -53,8 +48,6 @@ RegisterCommand('appearance', function()
         blacklist = genderData
       end
     end
-    
-    print('[tj_appearance] Loaded blacklist for ' .. gender .. ':', json.encode(blacklist))
 
     local models = lib.callback.await('tj_appearance:admin:getModels', false)
     
@@ -75,8 +68,6 @@ RegisterCommand('appearance', function()
           isBoss = playerData.job.isBoss
         }
       end
-
-      print('[tj_appearance] Sending appearance data to NUI', jobData.name)
       
       handleNuiMessage({
         action = 'data',
@@ -107,8 +98,6 @@ RegisterCommand('appearance', function()
 end, false)
 
 RegisterNuiCallback('save', function(data, cb)
-
-  print('[tj-appearance] Saving appearance data:', json.encode(data))
   handleNuiMessage({ action = 'setVisibleApp', data = false }, false)
   SetNuiFocus(false, false)
   ToggleCam(false)
@@ -116,7 +105,6 @@ RegisterNuiCallback('save', function(data, cb)
 end)
 
 RegisterNuiCallback('cancel', function(data, cb)
-  print('[tj-appearance] Closing appearance menu', json.encode(data))
   handleNuiMessage({ action = 'setVisibleApp', data = false }, false)
   SetNuiFocus(false, false)
   ToggleCam(false)
@@ -187,8 +175,6 @@ end
 
 -- Admin Menu
 RegisterNetEvent('tj_appearance:client:openAdminMenu', function()
-  print('[tj_appearance] Opening admin menu client side')
-  
   lib.callback('tj_appearance:admin:getTheme', false, function(theme)
     if theme then
       handleNuiMessage({ action = 'setThemeConfig', data = theme }, true)
@@ -209,22 +195,17 @@ RegisterNetEvent('tj_appearance:client:openAdminMenu', function()
   end)
   
   lib.callback('tj_appearance:admin:getModels', false, function(models)
-    print('[tj_appearance] Models count:', #models)
     if models then
       handleNuiMessage({ action = 'setModels', data = models }, true)
     end
   end)
   
-  print('[tj_appearance] Requesting settings...')
   lib.callback('tj_appearance:admin:getSettings', false, function(settings)
-    print('[tj_appearance] Settings callback received')
-    print('[tj_appearance] Settings:', json.encode(settings))
     if settings then
       handleNuiMessage({ action = 'setSettings', data = settings }, true)
     end
   end)
   
-  print('[tj_appearance] Setting admin menu visible and focus')
   handleNuiMessage({ action = 'setVisibleAdminMenu', data = true }, true)
   SetNuiFocus(true, true)
 end)
