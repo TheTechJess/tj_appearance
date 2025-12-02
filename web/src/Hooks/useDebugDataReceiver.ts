@@ -15,6 +15,7 @@ export const useDebugDataReceiver = () => {
     setTattoos,
     setOutfits,
     setModels,
+    setLockedModels,
     setLocale,
     setSelectedTab,
   } = useAppearanceStore();
@@ -28,6 +29,17 @@ export const useDebugDataReceiver = () => {
 
     // Set all the data
       setLocale(locale);
+      setModels(data.models);
+      
+      // Calculate modelIndex based on the model name
+      let modelIndex = 0;
+      if (data.appearance && data.models) {
+        const foundIndex = data.models.indexOf(data.appearance.model);
+        if (foundIndex !== -1) {
+          modelIndex = foundIndex;
+        }
+      }
+      
       // Ensure modelIndex is set in appearance
       setAppearance(
         data.appearance
@@ -36,7 +48,7 @@ export const useDebugDataReceiver = () => {
               modelIndex:
                 typeof data.appearance.modelIndex === 'number'
                   ? data.appearance.modelIndex
-                  : 0,
+                  : modelIndex,
             }
           : data.appearance
       );
@@ -44,7 +56,6 @@ export const useDebugDataReceiver = () => {
       setBlacklist(data.blacklist);
       setTattoos(data.tattoos);
       setOutfits(data.outfits);
-      setModels(data.models);
 
     // Create tabs from the tab names
     const tabs = (Array.isArray(data.tabs) ? data.tabs : [data.tabs]).map((tabId) => ({
@@ -60,5 +71,10 @@ export const useDebugDataReceiver = () => {
     if (tabs.length > 0) {
       setSelectedTab(tabs[0]);
     }
+  });
+
+  // Handle locked models updates
+  HandleNuiMessage<string[]>('setLockedModels', (data) => {
+    setLockedModels(data || []);
   });
 };

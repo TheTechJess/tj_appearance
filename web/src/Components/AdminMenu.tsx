@@ -48,6 +48,7 @@ export const AdminMenu: FC = () => {
   const [texturesAll, setTexturesAll] = useState<boolean>(true);
   const [texturesInput, setTexturesInput] = useState<string>('');
   const [models, setModels] = useState<string[]>([]);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [addModelModalOpen, setAddModelModalOpen] = useState(false);
   const [newModelName, setNewModelName] = useState<string>('');
 
@@ -68,7 +69,6 @@ export const AdminMenu: FC = () => {
   };
 
   HandleNuiMessage<boolean>('setVisibleAdminMenu', (visible) => {
-    console.log('[AdminMenu] setVisibleAdminMenu received:', visible);
     setIsVisible(visible);
   });
 
@@ -90,14 +90,19 @@ export const AdminMenu: FC = () => {
     setModels(data);
   });
 
+  HandleNuiMessage<{lockedModels: string[]}>('setSettings', (data) => {
+    console.log('[AdminMenu] setSettings received:', data);
+    setSelectedModels(data.lockedModels || []);
+  });
+
   useEffect(() => {}, [isVisible]);
 
   const handleSaveThemeAndShape = () => {
     TriggerNuiCallback('saveTheme', theme).then(() => {
-      console.log('Theme saved');
+
     });
     TriggerNuiCallback('saveShape', shape).then(() => {
-      console.log('Shape saved');
+
     });
   };
 
@@ -143,12 +148,9 @@ export const AdminMenu: FC = () => {
   };
 
   const handleClose = () => {
-    console.log('[AdminMenu] Closing admin menu');
     TriggerNuiCallback('closeAdminMenu', {});
     setIsVisible(false);
   };
-
-  console.log('[AdminMenu] Render - isVisible:', isVisible);
 
   if (!isVisible) return null;
 
@@ -454,13 +456,64 @@ export const AdminMenu: FC = () => {
           <Tabs.Panel value="models" pt="xl">
             <Stack spacing="lg">
               <Group position="apart">
-                <Text c="white" fw={500}>
-                  Available Player Models
-                </Text>
-                <Button onClick={() => setAddModelModalOpen(true)}>
-                  <IconPlus size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                  Add Model
-                </Button>
+                <Group>
+                  <Text c="white" fw={500}>
+                    Available Player Models
+                  </Text>
+                  <Checkbox
+                    label="Select All (Lock from Everyone)"
+                    description="Check models to lock them from everyone. Unchecked models are available to all players."
+                    checked={selectedModels.length > 0 && selectedModels.length === models.filter(m => m !== 'mp_m_freemode_01' && m !== 'mp_f_freemode_01').length}
+                    indeterminate={selectedModels.length > 0 && selectedModels.length < models.filter(m => m !== 'mp_m_freemode_01' && m !== 'mp_f_freemode_01').length}
+                    onChange={(e) => {
+                      if (e.currentTarget.checked) {
+                        // Select all non-freemode models
+                        setSelectedModels(models.filter(m => m !== 'mp_m_freemode_01' && m !== 'mp_f_freemode_01'));
+                      } else {
+                        // Deselect all
+                        setSelectedModels([]);
+                      }
+                    }}
+                    styles={{
+                      label: { color: '#fff', fontSize: '0.9rem' },
+                      description: { color: '#888', fontSize: '0.8rem', marginTop: 4 }
+                    }}
+                  />
+                </Group>
+                <Group>
+                  {selectedModels.length > 0 && (
+                    <>
+                      <Button 
+                        color="blue" 
+                        size="sm"
+                        onClick={() => {
+                          TriggerNuiCallback('saveSettings', { lockAllModels: false, lockedModels: selectedModels }).then(() => {
+                            console.log('Locked models saved');
+                          });
+                        }}
+                      >
+                        Save Locked Models
+                      </Button>
+                      <Button 
+                        color="red" 
+                        size="sm"
+                        onClick={() => {
+                          TriggerNuiCallback('deleteModels', selectedModels).then(() => {
+                            setModels(models.filter(m => !selectedModels.includes(m)));
+                            setSelectedModels([]);
+                          });
+                        }}
+                      >
+                        <IconTrash size={16} style={{ marginRight: 8 }} />
+                        Delete ({selectedModels.length})
+                      </Button>
+                    </>
+                  )}
+                  <Button onClick={() => setAddModelModalOpen(true)}>
+                    <IconPlus size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+                    Add Model
+                  </Button>
+                </Group>
               </Group>
 
               <div style={{ overflowX: 'auto' }}>
@@ -478,18 +531,37 @@ export const AdminMenu: FC = () => {
                       
                       return sortedModels.map((model, idx) => {
                         const isFreemode = freemodeModels.includes(model);
+                        const isSelected = selectedModels.includes(model);
                         return (
                           <Group
                             key={idx}
                             position="apart"
                             style={{
                               padding: '0.75rem 1rem',
-                              backgroundColor: idx % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)',
+                              backgroundColor: isSelected 
+                                ? 'rgba(59, 130, 246, 0.2)' 
+                                : idx % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)',
                               borderRadius: 6,
                               border: isFreemode ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid rgba(255,255,255,0.05)',
+                              cursor: isFreemode ? 'default' : 'pointer',
+                            }}
+                            onClick={() => {
+                              if (isFreemode) return;
+                              setSelectedModels(prev => 
+                                prev.includes(model) 
+                                  ? prev.filter(m => m !== model)
+                                  : [...prev, model]
+                              );
                             }}
                           >
                             <Group spacing="sm">
+                              {!isFreemode && (
+                                <Checkbox
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              )}
                               <IconUser size={18} color={isFreemode ? '#3b82f6' : '#888'} />
                               <Text c="white" fw={isFreemode ? 600 : 500}>
                                 {model}
@@ -499,11 +571,17 @@ export const AdminMenu: FC = () => {
                                   Protected
                                 </Badge>
                               )}
+                              {!isFreemode && isSelected && (
+                                <Badge size="xs" color="red" variant="light">
+                                  Locked
+                                </Badge>
+                              )}
                             </Group>
-                            {!isFreemode && (
+                            {!isFreemode && !isSelected && (
                               <ActionIcon 
                                 color="red" 
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   TriggerNuiCallback('deleteModel', model).then(() => {
                                     setModels(models.filter(m => m !== model));
                                   });

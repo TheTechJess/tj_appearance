@@ -70,11 +70,21 @@ function SetModel(ped, Model)
 
     if hash == 0 then hash = `mp_m_freemode_01` end -- fallback
 
+    -- Store player position and freeze
+    local coords = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+    FreezeEntityPosition(ped, true)
+
     RequestModel(hash)
     while not HasModelLoaded(hash) do
         Wait(0)
     end
 
+    -- Request collision at current location to prevent falling through map
+    RequestCollisionAtCoord(coords.x, coords.y, coords.z)
+    while not HasCollisionLoadedAroundEntity(ped) do
+        Wait(0)
+    end
 
     if IsPedAPlayer(ped) then
         SetPlayerModel(cache.playerId, hash)
@@ -82,6 +92,19 @@ function SetModel(ped, Model)
     else
         SetPlayerModel(ped, hash)
     end
+
+    -- Restore position and unfreeze
+    SetEntityCoords(ped, coords.x, coords.y, coords.z, false, false, false, false)
+    SetEntityHeading(ped, heading)
+    
+    -- Additional failsafe: ensure collision is loaded after model change
+    RequestCollisionAtCoord(coords.x, coords.y, coords.z)
+    Wait(100)
+    
+    -- Set coords again to ensure proper placement
+    SetEntityCoordsNoOffset(ped, coords.x, coords.y, coords.z, false, false, false)
+    
+    FreezeEntityPosition(ped, false)
 
     Wait(150)
     SetModelAsNoLongerNeeded(hash)
@@ -148,6 +171,22 @@ RegisterNuiCallback('setDrawable', function(data, cb)
 end)
 
 RegisterNuiCallback('setModel', function(data, cb)
-    local model = SetModel(cache.ped, data[1])
-    cb(model)
+    print('[tj_appearance] setModel called with data:', json.encode(data))
+    local modelString = data -- Store the original model string
+    local model = SetModel(cache.ped, data)
+    
+    if model then
+        Wait(200) -- Give time for model to fully load
+        
+        -- Get complete fresh appearance data for the new model
+        local appearance = GetPlayerAppearance()
+        
+        -- Override the model with the original string instead of hash
+        appearance.model = modelString
+        
+        -- Return the full appearance data to UI
+        cb(appearance)
+    else
+        cb(nil)
+    end
 end)

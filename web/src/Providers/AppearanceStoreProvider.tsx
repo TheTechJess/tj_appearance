@@ -35,6 +35,7 @@ interface AppearanceStoreContextType {
   jobData: TJOBDATA;
   originalAppearance: TAppearance | undefined;
   models: TModel[] | undefined;
+  lockedModels: string[];
   outfits: TOutfit[] | undefined;
   tattoos: TZoneTattoo[] | undefined;
   appearance: TAppearance | undefined;
@@ -50,6 +51,7 @@ interface AppearanceStoreContextType {
   setJobData: (jobData: TJOBDATA) => void;
   setOriginalAppearance: (appearance: TAppearance | undefined) => void;
   setModels: (models: TModel[] | undefined) => void;
+  setLockedModels: (lockedModels: string[]) => void;
   setAppearance: (appearance: TAppearance | undefined) => void;
 
   // Outfits methods
@@ -98,6 +100,7 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
   const [isValid, setIsValid] = useState<Blacklist>({ models: true, drawables: true });
   const [allowExit, setAllowExit] = useState<boolean>(true);
   const [blacklist, setBlacklist] = useState<TBlacklist | undefined>(undefined);
+  const [lockedModels, setLockedModels] = useState<string[]>([]);
   const [jobData, setJobData] = useState<TJOBDATA>({ name: '', isBoss: false });
   const [originalAppearance, setOriginalAppearance] = useState<TAppearance | undefined>(undefined);
   const [models, setModels] = useState<TModel[] | undefined>(undefined);
@@ -218,12 +221,14 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
 
   const setModel = (model: TModel) => {
     TriggerNuiCallback<TAppearance>(Send.setModel, model).then((data) => {
-      // Ensure modelIndex is set
+      if (!data) return;
+      
+      // Update appearance with all new model data
       setAppearance(prev => {
         const index = models?.indexOf(model) ?? 0;
         return {
-          ...(data || prev),
-          modelIndex: typeof (data?.modelIndex) === 'number' ? data.modelIndex : index,
+          ...data,
+          modelIndex: typeof data.modelIndex === 'number' ? data.modelIndex : index,
         };
       });
     });
@@ -374,6 +379,7 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     jobData,
     originalAppearance,
     models,
+    lockedModels,
     outfits,
     tattoos,
     appearance,
@@ -387,6 +393,7 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     setJobData,
     setOriginalAppearance,
     setModels,
+    setLockedModels,
     setOutfits,
     saveOutfit,
     editOutfit,

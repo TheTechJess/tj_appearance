@@ -9,11 +9,14 @@ repository 'https://github.com/PFScripts/fivem_react_vite_mantine_boilerplate'
 
 shared_scripts {'@ox_lib/init.lua', 'shared/*.lua'}
 
-client_scripts {'client/functions/*.lua','client/*.lua'}
+client_scripts {
+  'client/**/*.lua',
+  'client/*.lua'
+}
 
 server_scripts {
   '@oxmysql/lib/MySQL.lua',
-  'server/*.lua'
+  'server/**/*.lua'
 }
 
 -- ui_page 'web/build/index.html'

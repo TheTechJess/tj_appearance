@@ -1,14 +1,16 @@
 import { FC, useState } from 'react';
-import { Box, TextInput, Button, Stack, Text, Grid, Divider } from '@mantine/core';
+import { Box, TextInput, Button, Stack, Text, Grid, Divider, Badge } from '@mantine/core';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { THeadBlend } from '../../types/appearance';
 import { NumberStepper } from '../micro/NumberStepper';
 import { useCustomization } from '../../Providers/CustomizationProvider';
+import { IconLock } from '../icons/IconLock';
 
 export const Heritage: FC = () => {
     const {
         appearance,
         models,
+        lockedModels,
         blacklist,
         locale,
         isValid,
@@ -74,7 +76,21 @@ export const Heritage: FC = () => {
                     </Box>
 
                     {/* Current Model Display */}
-                    <Box style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                    <Box style={{ display: 'flex', gap: '0.375rem', alignItems: 'center', position: 'relative' }}>
+                        <Box
+                            style={{
+                                position: 'absolute',
+                                left: '50%',
+                                top: '-1.7rem',
+                                transform: 'translateX(-50%)',
+                                opacity: !isValid.models ? 0.75 : 0,
+                                pointerEvents: 'none',
+                                animation: 'pulse 1.5s infinite',
+                                transition: 'opacity 0.2s ease',
+                            }}
+                        >
+                            <IconLock size={20} />
+                        </Box>
                         <Button
                             onClick={() => {
                                 const newIndex = currentPedIndex > 0 ? currentPedIndex - 1 : (models?.length || 1) - 1;
@@ -203,33 +219,40 @@ export const Heritage: FC = () => {
                                     borderRadius: '0.25rem'
                                 }}
                             >
-                                {filteredModels.map((model, i) => (
-                                    <Button
-                                        key={i}
-                                        fullWidth
-                                        variant="subtle"
-                                        onClick={() => {
-                                            handleModelChange(model, models?.indexOf(model) || i);
-                                            setShowModelDropdown(false);
-                                            setModelSearch('');
-                                        }}
-                                        styles={{
-                                            root: {
-                                                justifyContent: 'flex-start',
-                                                color: model === currentPed ? '#5c7cfa' : 'white',
-                                                backgroundColor: model === currentPed ? 'rgba(92, 124, 250, 0.1)' : 'transparent',
-                                                '&:hover': {
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
-                                                },
-                                                borderRadius: 0,
-                                                height: '2.25rem',
-                                                padding: '0 0.375rem'
-                                            }
-                                        }}
-                                    >
-                                        {model}
-                                    </Button>
-                                ))}
+                                {filteredModels.map((model, i) => {
+                                    const isBlacklisted = blacklist?.models ? blacklist.models.includes(model) : false;
+                                    return (
+                                        <Button
+                                            key={i}
+                                            fullWidth
+                                            variant="subtle"
+                                            onClick={() => {
+                                                handleModelChange(model, models?.indexOf(model) || i);
+                                                setShowModelDropdown(false);
+                                                setModelSearch('');
+                                            }}
+                                            disabled={isBlacklisted}
+                                            styles={{
+                                                root: {
+                                                    justifyContent: 'space-between',
+                                                    color: isBlacklisted ? 'rgba(255, 255, 255, 0.3)' : (model === currentPed ? '#5c7cfa' : 'rgba(255, 255, 255, 0.3)'),
+                                                    backgroundColor: model === currentPed ? 'rgba(92, 124, 250, 0.1)' : 'transparent',
+                                                    '&:hover': {
+                                                        backgroundColor:  'rgba(255, 255, 255, 0.1)'
+                                                    },
+                                                    borderRadius: 0,
+                                                    height: '2.25rem',
+                                                    padding: '0 0.375rem',
+                                                    cursor: isBlacklisted ? 'not-allowed' : 'pointer',
+                                                    opacity: isBlacklisted ? 0.5 : 1
+                                                }
+                                            }}
+                                        >
+                                            <span>{model}</span>
+                                            {isBlacklisted && <IconLock size={16} />}
+                                        </Button>
+                                    );
+                                })}
                             </Box>
                         </Box>
                     )}

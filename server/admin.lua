@@ -5,6 +5,7 @@ local RestrictionsCache = {}
 local ThemeCache = nil
 local ShapeCache = nil
 local ModelsCache = {}
+local SettingsCache = nil
 
 -- Load all restrictions into cache on startup
 local function LoadRestrictionsCache()
@@ -78,11 +79,70 @@ local function LoadModelsCache()
     print('[tj_appearance] Loaded ' .. #ModelsCache .. ' models into cache')
 end
 
+-- Load settings into cache
+local function LoadSettingsCache()
+    print('[tj_appearance] LoadSettingsCache called')
+    local success, result = pcall(function()
+        return MySQL.query.await('SELECT * FROM appearance_settings LIMIT 1')
+    end)
+    
+    if not success then
+        print('[tj_appearance] ^3Warning: appearance_settings table not found. Run database_schema.sql to create it.^0')
+        SettingsCache = {
+            lockedModels = {}
+        }
+        return
+    end
+    
+    if result and result[1] then
+        SettingsCache = {
+            lockedModels = result[1].locked_models and json.decode(result[1].locked_models) or {}
+        }
+        print('[tj_appearance] Settings cache loaded - Locked Models: ' .. #SettingsCache.lockedModels)
+    else
+        SettingsCache = {
+            lockedModels = {}
+        }
+        print('[tj_appearance] Settings cache initialized (no data in table)')
+    end
+end
+
+-- Return models with freemode first, followed by others (matching Admin UI order)
+local function GetSortedModels()
+    local freemodeModels = {'mp_m_freemode_01', 'mp_f_freemode_01'}
+    local otherModels = {}
+
+    for _, model in ipairs(ModelsCache) do
+        if model ~= 'mp_m_freemode_01' and model ~= 'mp_f_freemode_01' then
+            table.insert(otherModels, model)
+        end
+    end
+
+    local sortedModels = {}
+    -- Add freemode models first if they exist in cache
+    for _, freemodel in ipairs(freemodeModels) do
+        for _, model in ipairs(ModelsCache) do
+            if model == freemodel then
+                table.insert(sortedModels, model)
+                break
+            end
+        end
+    end
+
+    -- Add other models
+    for _, model in ipairs(otherModels) do
+        table.insert(sortedModels, model)
+    end
+
+    return sortedModels
+end
+
 -- Initialize all caches on resource start
 CreateThread(function()
     LoadThemeCache()
     LoadShapeCache()
     LoadModelsCache()
+    LoadSettingsCache()
     LoadRestrictionsCache()
 end)
 
@@ -102,7 +162,6 @@ end
 
 -- Load theme configuration
 lib.callback.register('tj_appearance:admin:getTheme', function(source)
-    if not IsAdmin(source) then return nil end
     return ThemeCache
 end)
 
@@ -131,7 +190,6 @@ end)
 
 -- Load shape configuration
 lib.callback.register('tj_appearance:admin:getShape', function(source)
-    if not IsAdmin(source) then return nil end
     return ShapeCache
 end)
 
@@ -153,37 +211,35 @@ lib.callback.register('tj_appearance:admin:saveShape', function(source, shape)
     return true
 end)
 
+-- Get settings
+lib.callback.register('tj_appearance:admin:getSettings', function(source)
+    return SettingsCache
+end)
+
+-- Save settings
+lib.callback.register('tj_appearance:admin:saveSettings', function(source, settings)
+    if not IsAdmin(source) then return false end
+    
+    local lockedModelsJson = json.encode(settings.lockedModels or {})
+    
+    MySQL.query.await([[
+        INSERT INTO appearance_settings (id, locked_models)
+        VALUES (1, ?)
+        ON DUPLICATE KEY UPDATE locked_models = VALUES(locked_models)
+    ]], { lockedModelsJson })
+    
+    -- Update cache
+    SettingsCache = settings
+    
+    print('[tj_appearance] Settings updated - Locked Models:', #(settings.lockedModels or {}))
+    return true
+end)
+
 -- Get all models
 lib.callback.register('tj_appearance:admin:getModels', function(source)
     if not IsAdmin(source) then return {} end
-    
-    -- Ensure freemode models are always first
-    local freemodeModels = {'mp_m_freemode_01', 'mp_f_freemode_01'}
-    local otherModels = {}
-    
-    for _, model in ipairs(ModelsCache) do
-        if model ~= 'mp_m_freemode_01' and model ~= 'mp_f_freemode_01' then
-            table.insert(otherModels, model)
-        end
-    end
-    
-    local sortedModels = {}
-    -- Add freemode models first if they exist in cache
-    for _, freemodel in ipairs(freemodeModels) do
-        for _, model in ipairs(ModelsCache) do
-            if model == freemodel then
-                table.insert(sortedModels, model)
-                break
-            end
-        end
-    end
-    
-    -- Add other models
-    for _, model in ipairs(otherModels) do
-        table.insert(sortedModels, model)
-    end
-    
-    return sortedModels
+
+    return GetSortedModels()
 end)
 
 -- Add model
@@ -233,6 +289,33 @@ lib.callback.register('tj_appearance:admin:deleteModel', function(source, modelN
     return true
 end)
 
+-- Delete multiple models
+lib.callback.register('tj_appearance:admin:deleteModels', function(source, modelNames)
+    if not IsAdmin(source) then return false end
+    
+    if type(modelNames) ~= 'table' then return false end
+    
+    local deletedCount = 0
+    for _, modelName in ipairs(modelNames) do
+        -- Prevent deletion of freemode models
+        if modelName ~= 'mp_m_freemode_01' and modelName ~= 'mp_f_freemode_01' then
+            MySQL.query.await('DELETE FROM appearance_models WHERE model_name = ?', { modelName })
+            
+            -- Update cache
+            for i, model in ipairs(ModelsCache) do
+                if model == modelName then
+                    table.remove(ModelsCache, i)
+                    deletedCount = deletedCount + 1
+                    break
+                end
+            end
+        end
+    end
+    
+    print('[tj_appearance] Deleted ' .. deletedCount .. ' models')
+    return true
+end)
+
 -- Get all restrictions
 lib.callback.register('tj_appearance:admin:getRestrictions', function(source)
     if not IsAdmin(source) then return {} end
@@ -247,22 +330,6 @@ lib.callback.register('tj_appearance:admin:getRestrictions', function(source)
     end
     
     return all
-end)
-
--- Advanced JSON blacklist sets (per job/gang/gender)
-lib.callback.register('tj_appearance:admin:listBlacklistSets', function(source)
-    if not IsAdmin(source) then return {} end
-    local result = MySQL.query.await('SELECT id, job, gang, gender FROM appearance_blacklists ORDER BY job, gang, gender')
-    local sets = {}
-    for _, row in ipairs(result or {}) do
-        table.insert(sets, {
-            id = tostring(row.id),
-            job = row.job,
-            gang = row.gang,
-            gender = row.gender,
-        })
-    end
-    return sets
 end)
 
 lib.callback.register('tj_appearance:admin:getBlacklistData', function(source, info)
@@ -309,6 +376,9 @@ lib.callback.register('tj_appearance:getPlayerRestrictions', function(source)
         female = { models = {}, drawables = {}, props = {} }
     }
     
+    -- Track which models the player has access to via restrictions
+    local allowedModels = {}
+    
     -- Iterate through ALL restrictions and lock items where player is NOT in the job/gang
     for key, jobGangData in pairs(RestrictionsCache) do
         for gender, restrictions in pairs(jobGangData) do
@@ -324,13 +394,25 @@ lib.callback.register('tj_appearance:getPlayerRestrictions', function(source)
                     isPlayerInGroup = true
                 end
                 
+                -- Track models that player has access to
+                if isPlayerInGroup and restriction.type == 'model' then
+                    local modelIndex = tonumber(restriction.itemId)
+                    local sortedModels = GetSortedModels()
+                    if modelIndex and sortedModels[modelIndex + 1] then
+                        local modelName = sortedModels[modelIndex + 1]
+                        allowedModels[modelName] = true
+                        print('[tj_appearance] Granting access to model:', modelName, 'for job/gang:', job or gang)
+                    end
+                end
+                
                 -- Only blacklist if player is NOT in the restricted group
                 if not isPlayerInGroup then
                     if restriction.type == 'model' then
-                        -- Model blacklist - convert index to model name
+                        -- Model blacklist - convert index (from Admin UI list) to model name using the same ordering
                         local modelIndex = tonumber(restriction.itemId)
-                        if modelIndex and ModelsCache[modelIndex + 1] then -- Lua arrays are 1-indexed
-                            local modelName = ModelsCache[modelIndex + 1]
+                        local sortedModels = GetSortedModels()
+                        if modelIndex and sortedModels[modelIndex + 1] then -- Lua arrays are 1-indexed
+                            local modelName = sortedModels[modelIndex + 1]
                             -- Skip freemode models (always allowed)
                             if modelName ~= 'mp_m_freemode_01' and modelName ~= 'mp_f_freemode_01' then
                                 table.insert(out[gender].models, modelName)
@@ -362,6 +444,52 @@ lib.callback.register('tj_appearance:getPlayerRestrictions', function(source)
                             targetList[category].textures[tostring(restriction.itemId)] = restriction.textures
                         end
                     end
+                end
+            end
+        end
+    end
+
+    -- Merge model restrictions across genders so models apply to everyone
+    do
+        local merged, seen = {}, {}
+        for _, m in ipairs(out.male.models) do
+            if not seen[m] then table.insert(merged, m); seen[m] = true end
+        end
+        for _, m in ipairs(out.female.models) do
+            if not seen[m] then table.insert(merged, m); seen[m] = true end
+        end
+        out.male.models = merged
+        out.female.models = merged
+    end
+    
+    -- Add locked models to blacklist unless player has explicit access via restrictions
+    if SettingsCache and SettingsCache.lockedModels then
+        print('[tj_appearance] Processing locked models for player. Job:', job, 'Gang:', gang or 'none')
+        print('[tj_appearance] Allowed models count:', #allowedModels)
+        for model, _ in pairs(allowedModels) do
+            print('[tj_appearance] Player has access to:', model)
+        end
+        
+        for _, lockedModel in ipairs(SettingsCache.lockedModels) do
+            -- Skip freemode models (always allowed)
+            if lockedModel ~= 'mp_m_freemode_01' and lockedModel ~= 'mp_f_freemode_01' then
+                -- Only blacklist if player doesn't have explicit access
+                if not allowedModels[lockedModel] then
+                    print('[tj_appearance] Blacklisting locked model:', lockedModel)
+                    -- Check if already in blacklist to avoid duplicates
+                    local alreadyBlacklisted = false
+                    for _, m in ipairs(out.male.models) do
+                        if m == lockedModel then
+                            alreadyBlacklisted = true
+                            break
+                        end
+                    end
+                    if not alreadyBlacklisted then
+                        table.insert(out.male.models, lockedModel)
+                        table.insert(out.female.models, lockedModel)
+                    end
+                else
+                    print('[tj_appearance] Allowing locked model due to restriction:', lockedModel)
                 end
             end
         end
