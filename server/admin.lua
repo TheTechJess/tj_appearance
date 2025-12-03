@@ -6,6 +6,10 @@ local ThemeCache = nil
 local ShapeCache = nil
 local ModelsCache = {}
 local SettingsCache = nil
+local ShopSettingsCache = nil
+local ShopConfigsCache = {}
+local ZonesCache = {}
+local OutfitsCache = {}
 
 -- Load all restrictions into cache on startup
 local function LoadRestrictionsCache()
@@ -97,6 +101,112 @@ local function LoadSettingsCache()
     end
 end
 
+-- Load shop settings into cache
+local function LoadShopSettingsCache()
+    local success, result = pcall(function()
+        return MySQL.query.await('SELECT * FROM appearance_shop_settings LIMIT 1')
+    end)
+    
+    if not success then
+        ShopSettingsCache = {
+            enablePedsForShops = true,
+            enablePedsForClothingRooms = true,
+            enablePedsForPlayerOutfitRooms = true
+        }
+        return
+    end
+    
+    if result and result[1] then
+        ShopSettingsCache = {
+            enablePedsForShops = result[1].enable_peds_for_shops == 1,
+            enablePedsForClothingRooms = result[1].enable_peds_for_clothing_rooms == 1,
+            enablePedsForPlayerOutfitRooms = result[1].enable_peds_for_player_outfit_rooms == 1
+        }
+    else
+        ShopSettingsCache = {
+            enablePedsForShops = true,
+            enablePedsForClothingRooms = true,
+            enablePedsForPlayerOutfitRooms = true
+        }
+    end
+end
+
+-- Load shop configs into cache
+local function LoadShopConfigsCache()
+    local success, result = pcall(function()
+        return MySQL.query.await('SELECT * FROM appearance_shop_configs')
+    end)
+    
+    if not success then
+        ShopConfigsCache = {}
+        return
+    end
+    
+    ShopConfigsCache = {}
+    for _, row in ipairs(result or {}) do
+        table.insert(ShopConfigsCache, {
+            id = row.id,
+            type = row.type,
+            blipShow = row.blip_show == 1,
+            blipSprite = row.blip_sprite,
+            blipColor = row.blip_color,
+            blipScale = row.blip_scale,
+            blipName = row.blip_name,
+            cost = row.cost
+        })
+    end
+end
+
+-- Load zones into cache
+local function LoadZonesCache()
+    local success, result = pcall(function()
+        return MySQL.query.await('SELECT * FROM appearance_zones')
+    end)
+    
+    if not success then
+        ZonesCache = {}
+        return
+    end
+    
+    ZonesCache = {}
+    for _, row in ipairs(result or {}) do
+        table.insert(ZonesCache, {
+            id = row.id,
+            type = row.type,
+            coords = json.decode(row.coords),
+            polyzone = row.polyzone and json.decode(row.polyzone) or nil,
+            showBlip = row.show_blip == 1,
+            job = row.job,
+            gang = row.gang,
+            name = row.name
+        })
+    end
+end
+
+-- Load outfits into cache
+local function LoadOutfitsCache()
+    local success, result = pcall(function()
+        return MySQL.query.await('SELECT * FROM appearance_job_outfits')
+    end)
+    
+    if not success then
+        OutfitsCache = {}
+        return
+    end
+    
+    OutfitsCache = {}
+    for _, row in ipairs(result or {}) do
+        table.insert(OutfitsCache, {
+            id = row.id,
+            job = row.job,
+            gang = row.gang,
+            gender = row.gender,
+            outfitName = row.outfit_name,
+            outfitData = json.decode(row.outfit_data)
+        })
+    end
+end
+
 -- Return models with freemode first, followed by others (matching Admin UI order)
 local function GetSortedModels()
     local freemodeModels = {'mp_m_freemode_01', 'mp_f_freemode_01'}
@@ -133,6 +243,10 @@ CreateThread(function()
     LoadShapeCache()
     LoadModelsCache()
     LoadSettingsCache()
+    LoadShopSettingsCache()
+    LoadShopConfigsCache()
+    LoadZonesCache()
+    LoadOutfitsCache()
     LoadRestrictionsCache()
 end)
 
@@ -218,6 +332,220 @@ lib.callback.register('tj_appearance:admin:saveSettings', function(source, setti
     
     -- Update cache
     SettingsCache = settings
+    
+    return true
+end)
+
+-- Append locked models without removing existing ones
+lib.callback.register('tj_appearance:admin:addLockedModels', function(source, payload)
+    if not IsAdmin(source) then return false end
+    local modelsToAdd = (payload and payload.models) or {}
+    if type(modelsToAdd) ~= 'table' or #modelsToAdd == 0 then return false end
+
+    -- Ensure cache initialized
+    if not SettingsCache then
+        SettingsCache = { lockedModels = {} }
+    end
+    local current = SettingsCache.lockedModels or {}
+
+    -- Merge unique
+    local seen = {}
+    for _, m in ipairs(current) do seen[m] = true end
+    local changed = false
+    for _, m in ipairs(modelsToAdd) do
+        if m ~= 'mp_m_freemode_01' and m ~= 'mp_f_freemode_01' and not seen[m] then
+            table.insert(current, m)
+            seen[m] = true
+            changed = true
+        end
+    end
+
+    if not changed then return SettingsCache end
+
+    -- Persist
+    local lockedModelsJson = json.encode(current)
+    MySQL.query.await([[
+        INSERT INTO appearance_settings (id, locked_models)
+        VALUES (1, ?)
+        ON DUPLICATE KEY UPDATE locked_models = VALUES(locked_models)
+    ]], { lockedModelsJson })
+
+    SettingsCache.lockedModels = current
+    return SettingsCache
+end)
+
+-- Get shop settings
+lib.callback.register('tj_appearance:admin:getShopSettings', function(source)
+    if not IsAdmin(source) then return nil end
+    return ShopSettingsCache
+end)
+
+-- Get shop configs
+lib.callback.register('tj_appearance:admin:getShopConfigs', function(source)
+    if not IsAdmin(source) then return {} end
+    return ShopConfigsCache
+end)
+
+-- Save shop settings and configs
+lib.callback.register('tj_appearance:admin:saveShopSettings', function(source, data)
+    if not IsAdmin(source) then return false end
+    
+    local settings = data.settings
+    local configs = data.configs
+    
+    -- Save shop settings
+    MySQL.query.await([[
+        INSERT INTO appearance_shop_settings (id, enable_peds_for_shops, enable_peds_for_clothing_rooms, enable_peds_for_player_outfit_rooms)
+        VALUES (1, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE 
+            enable_peds_for_shops = VALUES(enable_peds_for_shops),
+            enable_peds_for_clothing_rooms = VALUES(enable_peds_for_clothing_rooms),
+            enable_peds_for_player_outfit_rooms = VALUES(enable_peds_for_player_outfit_rooms)
+    ]], {
+        settings.enablePedsForShops and 1 or 0,
+        settings.enablePedsForClothingRooms and 1 or 0,
+        settings.enablePedsForPlayerOutfitRooms and 1 or 0
+    })
+    
+    -- Save each shop config
+    for _, config in ipairs(configs) do
+        MySQL.query.await([[
+            INSERT INTO appearance_shop_configs (type, blip_show, blip_sprite, blip_color, blip_scale, blip_name, cost)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+                blip_show = VALUES(blip_show),
+                blip_sprite = VALUES(blip_sprite),
+                blip_color = VALUES(blip_color),
+                blip_scale = VALUES(blip_scale),
+                blip_name = VALUES(blip_name),
+                cost = VALUES(cost)
+        ]], {
+            config.type,
+            config.blipShow and 1 or 0,
+            config.blipSprite,
+            config.blipColor,
+            config.blipScale,
+            config.blipName,
+            config.cost
+        })
+    end
+    
+    -- Update cache
+    ShopSettingsCache = settings
+    LoadShopConfigsCache()
+    
+    return true
+end)
+
+-- Get zones
+lib.callback.register('tj_appearance:admin:getZones', function(source)
+    if not IsAdmin(source) then return {} end
+    return ZonesCache
+end)
+
+-- Add zone
+lib.callback.register('tj_appearance:admin:addZone', function(source, zone)
+    if not IsAdmin(source) then return false end
+    
+    local coordsJson = json.encode(zone.coords)
+    local polyzoneJson = zone.polyzone and json.encode(zone.polyzone) or nil
+    
+    local result = MySQL.insert.await([[
+        INSERT INTO appearance_zones (type, coords, polyzone, show_blip, job, gang, name)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ]], {
+        zone.type,
+        coordsJson,
+        polyzoneJson,
+        zone.showBlip and 1 or 0,
+        zone.job,
+        zone.gang,
+        zone.name
+    })
+    
+    if result and result > 0 then
+        LoadZonesCache()
+        return true
+    end
+    
+    return false
+end)
+
+-- Update zone
+lib.callback.register('tj_appearance:admin:updateZone', function(source, zone)
+    if not IsAdmin(source) then return false end
+    
+    local coordsJson = json.encode(zone.coords)
+    local polyzoneJson = zone.polyzone and json.encode(zone.polyzone) or nil
+    
+    MySQL.query.await([[
+        UPDATE appearance_zones 
+        SET type = ?, coords = ?, polyzone = ?, show_blip = ?, job = ?, gang = ?, name = ?
+        WHERE id = ?
+    ]], {
+        zone.type,
+        coordsJson,
+        polyzoneJson,
+        zone.showBlip and 1 or 0,
+        zone.job,
+        zone.gang,
+        zone.name,
+        zone.id
+    })
+    
+    LoadZonesCache()
+    return true
+end)
+
+-- Delete zone
+lib.callback.register('tj_appearance:admin:deleteZone', function(source, id)
+    if not IsAdmin(source) then return false end
+    
+    MySQL.query.await('DELETE FROM appearance_zones WHERE id = ?', { id })
+    LoadZonesCache()
+    
+    return true
+end)
+
+-- Get outfits
+lib.callback.register('tj_appearance:admin:getOutfits', function(source)
+    if not IsAdmin(source) then return {} end
+    return OutfitsCache
+end)
+
+-- Add outfit
+lib.callback.register('tj_appearance:admin:addOutfit', function(source, outfit)
+    if not IsAdmin(source) then return false end
+    
+    -- Get current player appearance for outfit data
+    -- In real implementation, this would come from the client or be passed in
+    local outfitDataJson = json.encode(outfit.outfitData or {})
+    
+    local result = MySQL.insert.await([[
+        INSERT INTO appearance_job_outfits (job, gang, gender, outfit_name, outfit_data)
+        VALUES (?, ?, ?, ?, ?)
+    ]], {
+        outfit.job,
+        outfit.gang,
+        outfit.gender,
+        outfit.outfitName,
+        outfitDataJson
+    })
+    
+    if result and result > 0 then
+        LoadOutfitsCache()
+        return { id = result }
+    end
+    
+    return false
+end)
+
+-- Delete outfit
+lib.callback.register('tj_appearance:admin:deleteOutfit', function(source, id)
+    if not IsAdmin(source) then return false end
+    
+    MySQL.query.await('DELETE FROM appearance_job_outfits WHERE id = ?', { id })
+    LoadOutfitsCache()
     
     return true
 end)

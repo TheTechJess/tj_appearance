@@ -60,3 +60,57 @@ CREATE TABLE IF NOT EXISTS `appearance_blacklists` (
 -- ALTER TABLE `appearance_restrictions` ADD COLUMN `category` VARCHAR(32) NULL DEFAULT NULL;
 -- ALTER TABLE `appearance_restrictions` ADD COLUMN `textures_all` TINYINT(1) NOT NULL DEFAULT 1;
 -- ALTER TABLE `appearance_restrictions` ADD COLUMN `textures` TEXT NULL;
+
+-- Shop settings (global toggles for ped usage in shops)
+CREATE TABLE IF NOT EXISTS `appearance_shop_settings` (
+    `id` INT NOT NULL DEFAULT 1,
+    `enable_peds_for_shops` TINYINT(1) NOT NULL DEFAULT 1,
+    `enable_peds_for_clothing_rooms` TINYINT(1) NOT NULL DEFAULT 1,
+    `enable_peds_for_player_outfit_rooms` TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Shop configurations (clothing, barber, tattoo, surgeon)
+CREATE TABLE IF NOT EXISTS `appearance_shop_configs` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `type` ENUM('clothing', 'barber', 'tattoo', 'surgeon') NOT NULL,
+    `blip_show` TINYINT(1) NOT NULL DEFAULT 1,
+    `blip_sprite` INT NOT NULL DEFAULT 366,
+    `blip_color` INT NOT NULL DEFAULT 47,
+    `blip_scale` DECIMAL(3,2) NOT NULL DEFAULT 0.70,
+    `blip_name` VARCHAR(100) NOT NULL DEFAULT 'Shop',
+    `cost` INT NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Zones for appearance shops (with polyzone support)
+CREATE TABLE IF NOT EXISTS `appearance_zones` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `type` ENUM('clothing', 'barber', 'tattoo', 'surgeon') NOT NULL,
+    `coords` TEXT NOT NULL COMMENT 'JSON: {x, y, z, heading}',
+    `polyzone` TEXT NULL COMMENT 'JSON: array of {x, y} points',
+    `show_blip` TINYINT(1) NOT NULL DEFAULT 1,
+    `job` VARCHAR(50) NULL DEFAULT NULL,
+    `gang` VARCHAR(50) NULL DEFAULT NULL,
+    `name` VARCHAR(100) NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    INDEX `idx_type` (`type`),
+    INDEX `idx_job` (`job`),
+    INDEX `idx_gang` (`gang`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Job and gang persistent outfits
+CREATE TABLE IF NOT EXISTS `appearance_job_outfits` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `job` VARCHAR(50) NULL DEFAULT NULL,
+    `gang` VARCHAR(50) NULL DEFAULT NULL,
+    `gender` ENUM('male', 'female') NOT NULL,
+    `outfit_name` VARCHAR(100) NOT NULL,
+    `outfit_data` LONGTEXT NOT NULL COMMENT 'JSON: appearance data',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_job_gender` (`job`, `gender`),
+    INDEX `idx_gang_gender` (`gang`, `gender`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
