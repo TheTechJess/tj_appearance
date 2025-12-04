@@ -1,6 +1,10 @@
 local handleNuiMessage = require('modules.nui')
+local CacheAPI = require('client.functions.cache')
 
-
+-- Initialize cache on resource start
+CreateThread(function()
+  CacheAPI.init()
+end)
 
 RegisterCommand('appearance', function()
   local localeFile = LoadResourceFile(GetCurrentResourceName(), "shared/locale/en.json")
@@ -20,27 +24,9 @@ RegisterCommand('appearance', function()
   local isMale = model == GetHashKey("mp_m_freemode_01")
   local gender = isMale and 'male' or 'female'
 
-    lib.callback('tj_appearance:admin:getTheme', false, function(theme)
-    if theme then
-      handleNuiMessage({ action = 'setThemeConfig', data = theme }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getShape', false, function(shape)
-    if shape then
-      handleNuiMessage({ action = 'setShapeConfig', data = shape }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getRestrictions', false, function(restrictions)
-    if restrictions then
-      handleNuiMessage({ action = 'setRestrictions', data = restrictions }, true)
-    end
-  end)
-  
-  -- Fetch restrictions for this player
-  lib.callback('tj_appearance:getPlayerRestrictions', false, function(restrictions)
     local blacklist = { models = {}, drawables = {}, props = {} }
+
+    local restrictions = CacheAPI.getRestrictions()
     
     if restrictions and restrictions.legacy then
       local genderData = restrictions.legacy[gender]
@@ -49,52 +35,51 @@ RegisterCommand('appearance', function()
       end
     end
 
-    local models = lib.callback.await('tj_appearance:admin:getModels', false)
+    local models = CacheAPI.getSortedModels()
     
     -- Cache models globally for hash-to-string conversion
     _G.cachedModels = models
     
-    -- Get locked models from server
-    lib.callback('tj_appearance:admin:getSettings', false, function(settings)
-      local lockedModels = (settings and settings.lockedModels) or {}
-      
-      -- Get player data from framework
-      local playerData = Framework and Framework.GetPlayerData() or nil
-      local jobData = { name = "", isBoss = false }
-      
-      if playerData and playerData.job then
-        jobData = {
-          name = playerData.job.name,
-          isBoss = playerData.job.isBoss
-        }
-      end
-      
-      handleNuiMessage({
-        action = 'data',
-        data = {
-          tabs = { "heritage", 'face', 'hair', 'clothes', 'accessories','makeup', 'tattoos', 'outfits' },
-          appearance = GetPlayerAppearance(),
-          locale = locale,
-          models = models,
-          blacklist = blacklist,
-          tattoos = {},
-          outfits = {},
-          allowExit = true,
-          job = jobData
-        }
-      }, true)
-      
-      -- Send locked models separately
-      handleNuiMessage({
-        action = 'setLockedModels',
-        data = lockedModels
-      }, true)
-      
-      Wait(1000)
-      ToggleCam(true)
-      handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
-    end)
-  end)
+    -- Get locked models from cache
+    local settings = CacheAPI.getSettings()
+    local lockedModels = (settings and settings.lockedModels) or {}
+    
+    -- Get player data from framework
+    local playerData = Framework and Framework.GetPlayerData() or nil
+    local jobData = { name = "", isBoss = false }
+    
+    if playerData and playerData.job then
+      jobData = {
+        name = playerData.job.name,
+        isBoss = playerData.job.isBoss
+      }
+    end
+    
+    handleNuiMessage({
+      action = 'data',
+      data = {
+        tabs = { "heritage", 'face', 'hair', 'clothes', 'accessories','makeup', 'tattoos', 'outfits' },
+        appearance = GetPlayerAppearance(),
+        locale = locale,
+        models = models,
+        blacklist = blacklist,
+        tattoos = {},
+        outfits = {},
+        allowExit = true,
+        job = jobData
+      }
+    }, true)
+    
+    -- Send locked models separately
+    handleNuiMessage({
+      action = 'setLockedModels',
+      data = lockedModels
+    }, true)
+    
+    Wait(100)
+    ToggleCam(true)
+    handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
+
 end, false)
 
 RegisterNuiCallback('save', function(data, cb)
@@ -173,70 +158,18 @@ end
 
 -- Admin Menu
 RegisterNetEvent('tj_appearance:client:openAdminMenu', function()
-  lib.callback('tj_appearance:admin:getTheme', false, function(theme)
-    if theme then
-      handleNuiMessage({ action = 'setThemeConfig', data = theme }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getShape', false, function(shape)
-    if shape then
-      handleNuiMessage({ action = 'setShapeConfig', data = shape }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getRestrictions', false, function(restrictions)
-    if restrictions then
-      handleNuiMessage({ action = 'setRestrictions', data = restrictions }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getModels', false, function(models)
-    if models then
-      handleNuiMessage({ action = 'setModels', data = models }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getSettings', false, function(settings)
-    if settings then
-      handleNuiMessage({ action = 'setSettings', data = settings }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getShopSettings', false, function(shopSettings)
-    if shopSettings then
-      handleNuiMessage({ action = 'setShopSettings', data = shopSettings }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getShopConfigs', false, function(shopConfigs)
-    if shopConfigs then
-      handleNuiMessage({ action = 'setShopConfigs', data = shopConfigs }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getZones', false, function(zones)
-    if zones then
-      handleNuiMessage({ action = 'setZones', data = zones }, true)
-    end
-  end)
-  
-  lib.callback('tj_appearance:admin:getOutfits', false, function(outfits)
-    if outfits then
-      handleNuiMessage({ action = 'setOutfits', data = outfits }, true)
-    end
-  end)
+  -- Load all data from cache instead of server callbacks
+  handleNuiMessage({ action = 'setThemeConfig', data = CacheAPI.getTheme() }, true)
+  handleNuiMessage({ action = 'setRestrictions', data = CacheAPI.getRestrictions() }, true)
+  handleNuiMessage({ action = 'setModels', data = CacheAPI.getSortedModels() }, true)
+  handleNuiMessage({ action = 'setSettings', data = CacheAPI.getSettings() }, true)
+  handleNuiMessage({ action = 'setShopSettings', data = CacheAPI.getShopSettings() }, true)
+  handleNuiMessage({ action = 'setShopConfigs', data = CacheAPI.getShopConfigs() }, true)
+  handleNuiMessage({ action = 'setZones', data = CacheAPI.getZones() }, true)
+  handleNuiMessage({ action = 'setOutfits', data = CacheAPI.getOutfits() }, true)
   
   handleNuiMessage({ action = 'setVisibleAdminMenu', data = true }, true)
   SetNuiFocus(true, true)
-end)
-
-RegisterNetEvent('tj_appearance:client:updateTheme', function(theme)
-  handleNuiMessage({ action = 'setThemeConfig', data = theme }, true)
-end)
-
-RegisterNetEvent('tj_appearance:client:updateShape', function(shape)
-  handleNuiMessage({ action = 'setShapeConfig', data = shape }, true)
 end)
 
 RegisterNuiCallback('closeAdminMenu', function(data, cb)
@@ -248,12 +181,6 @@ RegisterNuiCallback('saveTheme', function(theme, cb)
   lib.callback('tj_appearance:admin:saveTheme', false, function(success)
     cb(success)
   end, theme)
-end)
-
-RegisterNuiCallback('saveShape', function(shape, cb)
-  lib.callback('tj_appearance:admin:saveShape', false, function(success)
-    cb(success)
-  end, shape)
 end)
 
 RegisterNuiCallback('saveSettings', function(settings, cb)

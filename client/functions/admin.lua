@@ -1,51 +1,144 @@
 -- ===== Zone Noclip + Raycast Mode =====
 local _zoneNoclipActive = false
 local _zoneRaycastPoint = nil
-local _zoneMoveSpeed = 5.0
+local _zoneMoveSpeed = 1.0
 local _zoneMultiPointMode = false
 local _zoneMultiPoints = {}
 local _zoneStartedAt = 0
 
-local function RaycastFromCamera(maxDistance)
-  local from = GetFinalRenderedCamCoord()
-  local dir = GetFinalRenderedCamRot(2)
-  local pitch = math.rad(dir.x)
-  local yaw = math.rad(dir.z)
-  local forward = vector3(-math.sin(yaw) * math.cos(pitch), math.cos(yaw) * math.cos(pitch), math.sin(pitch))
-  local to = from + forward * (maxDistance or 200.0)
-  local ray = StartShapeTestRay(from.x, from.y, from.z, to.x, to.y, to.z, 1, cache.ped, 7)
-  local _, hit, hitCoords = GetShapeTestResult(ray)
-  if hit == 1 then
-    return hitCoords
+
+---@alias ShapetestIgnore
+---| 1 GLASS
+---| 2 SEE_THROUGH
+---| 3 GLASS | SEE_THROUGH
+---| 4 NO_COLLISION
+---| 7 GLASS | SEE_THROUGH | NO_COLLISION
+
+---@alias ShapetestFlags integer
+---| 1 INCLUDE_MOVER
+---| 2 INCLUDE_VEHICLE
+---| 4 INCLUDE_PED
+---| 8 INCLUDE_RAGDOLL
+---| 16 INCLUDE_OBJECT
+---| 32 INCLUDE_PICKUP
+---| 64 INCLUDE_GLASS
+---| 128 INCLUDE_RIVER
+---| 256 INCLUDE_FOLIAGE
+---| 511 INCLUDE_ALL
+
+-- Raycast setup
+
+local function RaycastFromCamera()
+  local coords, normal = GetWorldCoordFromScreenCoord(0.5, 0.5)
+  local destination = coords + normal * 10
+  local handle = StartShapeTestLosProbe(coords.x, coords.y, coords.z, destination.x, destination.y, destination.z,
+    1, cache.ped, 4)
+
+  while true do
+    Wait(0)
+    local retval, hit, endCoords, surfaceNormal, materialHash, entityHit = GetShapeTestResultIncludingMaterial(
+      handle)
+
+    if retval ~= 1 then
+      ---@diagnostic disable-next-line: return-type-mismatch
+      return endCoords
+    end
   end
-  return nil
 end
 
-local function DrawRayLine(from, to)
+local function DrawRayLine(from)
+  local to = from + vector3(0.0, 0.0, 5.0)
   DrawLine(from.x, from.y, from.z, to.x, to.y, to.z, 255, 0, 0, 200)
 end
 
-local function DisableContols()
-    DisableControlAction(0, 30, true) -- Move Left/Right
-    DisableControlAction(0, 31, true) -- Move Up/Down
-    DisableControlAction(0, 140, true) -- Melee Attack Light
-    DisableControlAction(0, 141, true) -- Melee Attack Heavy
-    DisableControlAction(0, 142, true) -- Melee Attack Alternative
-    DisableControlAction(0, 24, true) -- Attack
-    DisableControlAction(0, 25, true) -- Aim
-    DisableControlAction(0, 22, true) -- Jump
-    DisableControlAction(0, 23, true) -- Enter Vehicle
-    DisableControlAction(0, 75, true) -- Exit Vehicle
-    DisableControlAction(0, 45, true) -- Reload
+local function DisableControls()
+  DisableControlAction(0, 30, true)    -- Move Left/Right
+  DisableControlAction(0, 31, true)    -- Move Up/Down
+  DisableControlAction(0, 140, true)   -- Melee Attack Light
+  DisableControlAction(0, 141, true)   -- Melee Attack Heavy
+  DisableControlAction(0, 142, true)   -- Melee Attack Alternative
+  DisableControlAction(0, 24, true)    -- Attack
+  DisableControlAction(0, 25, true)    -- Aim
+  DisableControlAction(0, 22, true)    -- Jump
+  DisableControlAction(0, 23, true)    -- Enter Vehicle
+  DisableControlAction(0, 75, true)    -- Exit Vehicle
+  DisableControlAction(0, 45, true)    -- Reload
 end
 
 
--- Freecam controls: move the camera instead of the ped
+local function GetCamForwardVector(cam)
+  local rot = GetCamRot(cam, 2)
+  local pitch = math.rad(rot.x)
+  local yaw = math.rad(rot.z)
+  local x = -math.sin(yaw) * math.cos(pitch)
+  local y = math.cos(yaw) * math.cos(pitch)
+  local z = math.sin(pitch)
+  return vector3(x, y, z)
+end
+
+local function GetCamRightVector(cam)
+  local rot = GetCamRot(cam, 2)
+  local yaw = math.rad(rot.z)
+  local x = math.cos(yaw)
+  local y = math.sin(yaw)
+  return vector3(x, y, 0.0)
+end
+
+-- Freecam controls: move the camera with WASD/Q/Z and rotate with mouse
 local function HandleFreecamMovement(cam)
   local camPos = GetFinalRenderedCamCoord()
+  local camRot = GetCamRot(cam, 2)
   local speed = _zoneMoveSpeed
 
+  DisableControls()
 
+  -- Movement controls
+  if IsControlPressed(0, 32) then -- W - Forward
+    camPos = camPos + GetCamForwardVector(cam) * speed
+  end
+
+  if IsControlPressed(0, 33) then -- S - Backward
+    camPos = camPos - GetCamForwardVector(cam) * speed
+  end
+
+  if IsControlPressed(0, 34) then -- A - Strafe Left
+    local rightVector = GetCamRightVector(cam)
+    camPos = camPos - rightVector * speed
+  end
+
+  if IsControlPressed(0, 35) then -- D - Strafe Right
+    local rightVector = GetCamRightVector(cam)
+    camPos = camPos + rightVector * speed
+  end
+
+  if IsControlPressed(0, 44) then -- Q - Up
+    camPos = camPos + vector3(0.0, 0.0, speed)
+  end
+
+  if IsControlPressed(0, 20) then -- Z - Down
+    camPos = camPos - vector3(0.0, 0.0, speed)
+  end
+
+  -- Apply position
+  SetCamCoord(cam, camPos.x, camPos.y, camPos.z)
+
+  -- Mouse rotation
+  local mouseX = GetDisabledControlNormal(0, 1) * 5.0
+  local mouseY = GetDisabledControlNormal(0, 2) * 5.0
+
+  camRot = vector3(camRot.x - mouseY, 0.0, camRot.z - mouseX)
+
+  -- Clamp pitch to prevent over-rotation
+  if camRot.x > 89.0 then camRot = vector3(89.0, 0.0, camRot.z) end
+  if camRot.x < -89.0 then camRot = vector3(-89.0, 0.0, camRot.z) end
+
+  SetCamRot(cam, camRot.x, camRot.y, camRot.z, 2)
+end
+
+local function StopZoneRaycastMode()
+  _zoneNoclipActive = false
+  _zoneRaycastPoint = nil
+  _zoneMultiPointMode = false
 end
 
 local function StartZoneRaycastMode(multiPoint)
@@ -54,27 +147,28 @@ local function StartZoneRaycastMode(multiPoint)
   _zoneMultiPointMode = multiPoint or false
   _zoneMultiPoints = {}
   _zoneStartedAt = GetGameTimer()
-  
+
   local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
   local pedPos = GetEntityCoords(cache.ped)
   SetCamCoord(cam, pedPos.x, pedPos.y, pedPos.z + 1.0)
   SetCamActive(cam, true)
-  RenderScriptCams(true, false, 0, true, false)
-  SendNUIMessage({ action = 'zoneCaptureActive', active = true })
+  RenderScriptCams(true, false, 0, true, true)
+  FreezeEntityPosition(cache.ped, true)
+  SendNUIMessage({ action = 'zoneCaptureActive', data = { active = true } })
   CreateThread(function()
     while _zoneNoclipActive do
       HandleFreecamMovement(cam)
       local from = GetFinalRenderedCamCoord()
-      local hit = RaycastFromCamera(200.0)
+      local hit = RaycastFromCamera()
       _zoneRaycastPoint = hit
       if hit then
-        DrawRayLine(from, hit)
+        DrawRayLine(hit)
       end
       DisableControlAction(0, 24, true) -- Disable attack
       DisableControlAction(0, 25, true) -- Disable aim
-      
-      -- Multi-point mode: E to add point, ESC to finish
+
       if _zoneMultiPointMode then
+        -- Multi-point mode: E to add point, Backspace to finish
         if IsControlJustPressed(0, 38) then -- E key
           if hit then
             table.insert(_zoneMultiPoints, { x = hit.x, y = hit.y })
@@ -83,7 +177,20 @@ local function StartZoneRaycastMode(multiPoint)
         end
         if IsControlJustPressed(0, 177) then -- Backspace to finish
           StopZoneRaycastMode()
-          SendNUIMessage({ action = 'polyzonePointsCaptured', points = _zoneMultiPoints })
+          SendNUIMessage({ action = 'polyzonePointsCaptured', data = { points = _zoneMultiPoints } })
+          break
+        end
+      else
+        -- Single-point mode: E to confirm, Backspace to cancel
+        if IsControlJustPressed(0, 38) then -- E key
+          if hit then
+            StopZoneRaycastMode()
+            SendNUIMessage({ action = 'singlePointCaptured', data = { coords = { x = hit.x, y = hit.y, z = hit.z } } })
+            break
+          end
+        end
+        if IsControlJustPressed(0, 177) then -- Backspace to cancel
+          StopZoneRaycastMode()
           break
         end
       end
@@ -92,16 +199,15 @@ local function StartZoneRaycastMode(multiPoint)
     -- Disable freecam and restore normal camera
     RenderScriptCams(false, false, 0, true, false)
     DestroyCam(cam, false)
+    -- Restore player and UI focus
+    FreezeEntityPosition(cache.ped, false)
+    SetNuiFocus(true, true)
     -- Notify UI capture finished
-    SendNUIMessage({ action = 'zoneCaptureActive', active = false })
+    SendNUIMessage({ action = 'zoneCaptureActive', data = { active = false } })
   end)
 end
 
-local function StopZoneRaycastMode()
-  _zoneNoclipActive = false
-  _zoneRaycastPoint = nil
-  _zoneMultiPointMode = false
-end
+
 
 RegisterNuiCallback('startZoneRaycast', function(data, cb)
   StartZoneRaycastMode(data.multiPoint)

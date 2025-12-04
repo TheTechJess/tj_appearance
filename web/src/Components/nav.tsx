@@ -106,7 +106,7 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
     toggleItem,
   } = useAppearanceStore();
   
-  const { theme, shape } = useCustomization();
+  const { theme } = useCustomization();
 
   const hexToRgba = (hex: string, alpha = 0.2) => {
     const h = hex.replace('#', '');
@@ -289,7 +289,7 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
                 }}
               >
                 <CameraShape
-                  type={shape.type}
+                  type={theme.shape || 'hexagon'}
                   stroke={selected ? theme.primaryColor : theme.inactiveColor}
                   fill={selected ? hexToRgba(theme.primaryColor, 0.2) : hexToRgba(theme.inactiveColor, 0.2)}
                   strokeWidth={2}
@@ -354,7 +354,7 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
                 transition: 'transform 0.15s ease-in-out',
               }}
             >
-              <CameraShape type={shape.type} stroke={'#ef4444'} fill={'rgba(239,68,68,0.2)'} strokeWidth={6} />
+              <CameraShape type={theme.shape || 'hexagon'} stroke={'#ef4444'} fill={'rgba(239,68,68,0.2)'} strokeWidth={6} />
               <Box
                 style={{
                   width: '3vh',
@@ -402,7 +402,7 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
               transition: 'transform 0.15s ease-in-out',
             }}
           >
-            <CameraShape type={shape.type} stroke={'#10b981'} fill={'rgba(16,185,129,0.2)'} strokeWidth={4} />
+            <CameraShape type={theme.shape || 'hexagon'} stroke={'#10b981'} fill={'rgba(16,185,129,0.2)'} strokeWidth={4} />
             <Box
               style={{
                 width: '8vh',
@@ -454,7 +454,7 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
             }}
           >
             <CameraShape
-              type={shape.type}
+              type={theme.shape || 'hexagon'}
               stroke={showToggles ? theme.primaryColor : theme.inactiveColor}
               fill={showToggles ? hexToRgba(theme.primaryColor, 0.2) : hexToRgba(theme.inactiveColor, 0.2)}
               strokeWidth={6}
@@ -536,7 +536,7 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
                   }}
                 >
                   <CameraShape
-                    type={shape.type}
+                    type={theme.shape || 'hexagon'}
                     stroke={toggle ? theme.primaryColor : theme.inactiveColor}
                     fill={toggle ? hexToRgba(theme.primaryColor, 0.2) : hexToRgba(theme.inactiveColor, 0.2)}
                     strokeWidth={4}

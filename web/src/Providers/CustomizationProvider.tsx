@@ -4,24 +4,18 @@ import { HandleNuiMessage } from '../Hooks/HandleNuiMessage';
 interface ThemeConfig {
   primaryColor: string;
   inactiveColor: string;
-}
-
-interface ShapeConfig {
-  type: 'hexagon' | 'circle' | 'square' | 'diamond' | 'pentagon';
+  shape?: 'hexagon' | 'circle' | 'square' | 'diamond' | 'pentagon';
 }
 
 interface CustomizationContextValue {
   theme: ThemeConfig;
-  shape: ShapeConfig;
 }
 
 const CustomizationContext = createContext<CustomizationContextValue>({
   theme: {
     primaryColor: '#3b82f6',
     inactiveColor: '#202020ff',
-  },
-  shape: {
-    type: 'hexagon',
+    shape: 'hexagon',
   },
 });
 
@@ -31,18 +25,11 @@ export const CustomizationProvider: FC<{ children: ReactNode }> = ({ children })
   const [theme, setTheme] = useState<ThemeConfig>({
     primaryColor: '#3b82f6',
     inactiveColor: '#202020ff',
-  });
-
-  const [shape, setShape] = useState<ShapeConfig>({
-    type: 'hexagon',
+    shape: 'hexagon',
   });
 
   HandleNuiMessage<ThemeConfig>('setThemeConfig', (data) => {
     setTheme(data);
-  });
-
-  HandleNuiMessage<ShapeConfig>('setShapeConfig', (data) => {
-    setShape(data);
   });
 
   // Reflect theme colors to CSS variables for global styling (e.g., input ranges)
@@ -53,7 +40,7 @@ export const CustomizationProvider: FC<{ children: ReactNode }> = ({ children })
   }, [theme]);
 
   return (
-    <CustomizationContext.Provider value={{ theme, shape }}>
+    <CustomizationContext.Provider value={{ theme }}>
       {children}
     </CustomizationContext.Provider>
   );

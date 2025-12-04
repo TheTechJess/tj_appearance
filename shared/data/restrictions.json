@@ -1,0 +1,16 @@
+{
+    "female": [
+        {
+            "group": "gang",
+            "name": "ballas",
+            "gender": "female",
+            "type": "clothing",
+            "item_id": 4,
+            "label": null,
+            "part": "drawable",
+            "category": "jackets",
+            "textures_all": 1,
+            "textures": null
+        }
+    ]
+}

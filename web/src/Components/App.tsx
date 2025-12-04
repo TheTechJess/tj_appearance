@@ -21,7 +21,7 @@ export const App: FC = () => {
   const [playerInformation, setPlayerInformation] = useState<PlayerInformation | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [animateIn, setAnimateIn] = useState(false);
-  const { theme, shape } = useCustomization();
+  const { theme } = useCustomization();
 
   // Camera overlay state (converted from Svelte)
   const levels = useMemo(() => ['whole', 'head', 'torso', 'legs', 'shoes'] as const, []);
@@ -158,7 +158,7 @@ export const App: FC = () => {
             </button>
             {/* Hexagon with level icon */}
             <div style={{ width: '7vh', height: '7vh', position: 'relative', display: 'grid', placeItems: 'center' }}>
-              <CameraShape type={shape.type} />
+              <CameraShape type={theme.shape || 'hexagon'} />
               {/* Icon in the middle */}
               <svg viewBox="0 0 100 100" style={{ position: 'absolute', inset: 0, padding: '12%', color: 'white' }}>
                 {level === 'whole' && (

@@ -14,7 +14,10 @@ Config.Prices = {
 Config.Camera = {
     Body_Distance = 2.0, -- Distance of the camera from the player
     Default_Distance = 1.0, -- Default distance for close-up views
+
+    -- this offset is for female peds to better center the head
     Head_Z_Offset = 0.16, -- Vertical offset for head camera position
+    
     Bones = {
         whole = 0,
         head = 12844,

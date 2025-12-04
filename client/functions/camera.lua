@@ -11,11 +11,14 @@ local CAM_CONFIG = Config.Camera
 --  - applies a small Z offset when boneKey == 'head' to frame slightly higher
 local function GetSectionCoords(entry, boneKey)
 
+  local model = GetEntityModel(cache.ped)
+  local isMale = model == GetHashKey("mp_m_freemode_01")
+  local zOffset = not isMale and Config.Camera.Head_Z_Offset or 0.00
+
   if entry == 0 then
     local pos = GetEntityCoords(cache.ped)
     if boneKey == 'head' then
-      local dz = CAM_CONFIG.Head_Z_Offset or 0.06
-      return vector3(pos.x, pos.y, pos.z + dz)
+      return vector3(pos.x, pos.y, pos.z + zOffset)
     end
     return pos
   end
@@ -23,8 +26,7 @@ local function GetSectionCoords(entry, boneKey)
   if type(entry) == 'number' then
     local pos = GetPedBoneCoords(cache.ped, entry, 0.0, 0.0, 0.0)
     if boneKey == 'head' then
-      local dz = CAM_CONFIG.Head_Z_Offset or 0.06
-      return vector3(pos.x, pos.y, pos.z + dz)
+      return vector3(pos.x, pos.y, pos.z + zOffset)
     end
     return pos
   end
@@ -38,15 +40,13 @@ local function GetSectionCoords(entry, boneKey)
       -- midpoint
       local pos = vector3((ca.x + cb.x) * 0.5, (ca.y + cb.y) * 0.5, (ca.z + cb.z) * 0.5)
       if boneKey == 'head' then
-        local dz = CAM_CONFIG.Head_Z_Offset or 0.06
-        return vector3(pos.x, pos.y, pos.z + dz)
+        return vector3(pos.x, pos.y, pos.z + zOffset)
       end
       return pos
     elseif type(a) == 'number' then
       local pos = GetPedBoneCoords(cache.ped, a, 0.0, 0.0, 0.0)
       if boneKey == 'head' then
-        local dz = CAM_CONFIG.Head_Z_Offset or 0.06
-        return vector3(pos.x, pos.y, pos.z + dz)
+        return vector3(pos.x, pos.y, pos.z + zOffset)
       end
       return pos
     end
@@ -55,8 +55,7 @@ local function GetSectionCoords(entry, boneKey)
   -- fallback to entity coords
   local pos = GetEntityCoords(cache.ped)
   if boneKey == 'head' then
-    local dz = CAM_CONFIG.Head_Z_Offset or 0.06
-    return vector3(pos.x, pos.y, pos.z + dz)
+    return vector3(pos.x, pos.y, pos.z + zOffset)
   end
   return pos
 end

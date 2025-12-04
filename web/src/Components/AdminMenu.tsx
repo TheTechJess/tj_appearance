@@ -8,10 +8,7 @@ import { CameraShape } from './micro/CameraShape';
 interface ThemeConfig {
   primaryColor: string; // Active tab color
   inactiveColor: string; // Inactive tab color
-}
-
-interface ShapeConfig {
-  type: 'hexagon' | 'circle' | 'square' | 'diamond' | 'pentagon';
+  shape?: 'hexagon' | 'circle' | 'square' | 'diamond' | 'pentagon'; // Camera shape
 }
 
 interface ClothingRestriction {
@@ -74,8 +71,8 @@ export const AdminMenu: FC = () => {
   const [theme, setTheme] = useState<ThemeConfig>({
     primaryColor: '#3b82f6',
     inactiveColor: '#202020ff',
+    shape: 'hexagon',
   });
-  const [shape, setShape] = useState<ShapeConfig>({ type: 'hexagon' });
   const [restrictions, setRestrictions] = useState<ClothingRestriction[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newRestriction, setNewRestriction] = useState<Partial<ClothingRestriction>>({
@@ -109,6 +106,7 @@ export const AdminMenu: FC = () => {
   const [addZoneModalOpen, setAddZoneModalOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const [polyzonePointsInput, setPolyzonePointsInput] = useState<string>('');
+  const [coordsInput, setCoordsInput] = useState<string>('');
   const [newZoneType, setNewZoneType] = useState<Zone['type']>('clothing');
 
   // Outfits State
@@ -146,11 +144,8 @@ export const AdminMenu: FC = () => {
     setTheme(data);
   });
 
-  HandleNuiMessage<ShapeConfig>('setShapeConfig', (data) => {
-    setShape(data);
-  });
-
   HandleNuiMessage<string[]>('setModels', (data) => {
+    console.log('Received models:', JSON.stringify(data));
     setModels(data);
   });
 
@@ -174,28 +169,54 @@ export const AdminMenu: FC = () => {
     setOutfits(data);
   });
 
-  // Keep UI hidden while capture is active
+  // Keep UI hidden while capture is active; show again when it ends
   HandleNuiMessage<{ active: boolean }>('zoneCaptureActive', (data) => {
+    if (!data) return;
     const active = !!data.active;
     setCaptureActive(active);
-    if (active) setIsVisible(false);
+    if (active) {
+      setIsVisible(false);
+    } else {
+      setIsVisible(true);
+    }
   });
 
   HandleNuiMessage<{ points: { x: number; y: number }[] }>('polyzonePointsCaptured', (data) => {
+    if (!data || !data.points) return;
     // Multi-point capture finished, restore UI and set points
+    setCaptureActive(false);
     setIsVisible(true);
     if (data.points && data.points.length > 0) {
       setPolyzonePointsInput(JSON.stringify(data.points));
     }
   });
 
+  HandleNuiMessage<{ coords: { x: number; y: number; z: number } }>('singlePointCaptured', (data) => {
+    if (!data || !data.coords) return;
+    // Single-point capture finished, restore UI and set coord
+    setCaptureActive(false);
+    setIsVisible(true);
+    if (editingZone) {
+      const heading = (editingZone.coords?.heading ?? 0);
+      setEditingZone({ ...editingZone, coords: { x: data.coords.x, y: data.coords.y, z: data.coords.z, heading } });
+      setCoordsInput(`${data.coords.x.toFixed(2)}, ${data.coords.y.toFixed(2)}, ${data.coords.z.toFixed(2)}, ${heading}`);
+    }
+  });
+
+  // Keep coords input in sync when editingZone changes (e.g., opening modal or selecting a zone)
+  useEffect(() => {
+    if (editingZone && editingZone.coords) {
+      const c = editingZone.coords;
+      setCoordsInput(`${(c.x ?? 0).toFixed(2)}, ${(c.y ?? 0).toFixed(2)}, ${(c.z ?? 0).toFixed(2)}, ${c.heading ?? 0}`);
+    } else {
+      setCoordsInput('');
+    }
+  }, [editingZone]);
+
   useEffect(() => {}, [isVisible]);
 
   const handleSaveThemeAndShape = () => {
     TriggerNuiCallback('saveTheme', theme).then(() => {
-
-    });
-    TriggerNuiCallback('saveShape', shape).then(() => {
 
     });
   };
@@ -367,10 +388,10 @@ export const AdminMenu: FC = () => {
                   Camera Shape
                 </Text>
                 <Select
-                  value={shape.type}
+                  value={theme.shape || 'hexagon'}
                   onChange={(value) => {
                     if (value === 'hexagon' || value === 'circle' || value === 'square' || value === 'diamond' || value === 'pentagon') {
-                      setShape({ type: value });
+                      setTheme({ ...theme, shape: value });
                     }
                   }}
                   data={[
@@ -389,7 +410,7 @@ export const AdminMenu: FC = () => {
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
                       <div style={{ width: 80, height: 80 }}>
                         <CameraShape
-                          type={shape.type}
+                          type={theme.shape || 'hexagon'}
                           stroke={theme.primaryColor}
                           fill={`${theme.primaryColor}33`}
                           strokeWidth={2}
@@ -404,7 +425,7 @@ export const AdminMenu: FC = () => {
                     <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
                       <div style={{ width: 80, height: 80 }}>
                         <CameraShape
-                          type={shape.type}
+                          type={theme.shape || 'hexagon'}
                           stroke={theme.inactiveColor}
                           fill={`${theme.inactiveColor}33`}
                           strokeWidth={2}
@@ -429,7 +450,7 @@ export const AdminMenu: FC = () => {
                   },
                 }}
               >
-                Save Appearance Settings
+                Save Theme & Shape Settings
               </Button>
             </Stack>
           </Tabs.Panel>
@@ -1229,8 +1250,11 @@ export const AdminMenu: FC = () => {
                   placeholder="123.45, 234.56, 345.67, 90.0"
                   description="Get coords in-game and paste here"
                   style={{ flex: 1 }}
+                  value={coordsInput}
                   onChange={(e) => {
-                    const parts = e.target.value.split(',').map(p => parseFloat(p.trim()));
+                    const raw = e.target.value;
+                    setCoordsInput(raw);
+                    const parts = raw.split(',').map(p => parseFloat(p.trim()));
                     if (parts.length >= 3 && !parts.slice(0, 3).some(isNaN)) {
                       const coords = { x: parts[0], y: parts[1], z: parts[2], heading: parts[3] || 0 };
                       if (editingZone) {
@@ -1243,16 +1267,8 @@ export const AdminMenu: FC = () => {
                   variant="light"
                   onClick={() => {
                     setIsVisible(false);
-                    TriggerNuiCallback('startZoneRaycast', { multiPoint: false }).then(() => {
-                      TriggerNuiCallback('captureRaycastPoint', {}).then((hit: { x:number;y:number;z:number } | null) => {
-                        TriggerNuiCallback('stopZoneRaycast', {}).then(() => {
-                          setIsVisible(true);
-                          if (!hit || !editingZone) return;
-                          const heading = (editingZone.coords?.heading ?? 0);
-                          setEditingZone({ ...editingZone, coords: { x: hit.x, y: hit.y, z: hit.z, heading } });
-                        });
-                      });
-                    });
+                    setCaptureActive(true);
+                    TriggerNuiCallback('startZoneRaycast', { multiPoint: false });
                   }}
                 >
                   <IconDownload stroke={2} />
@@ -1274,8 +1290,9 @@ export const AdminMenu: FC = () => {
                   variant="light"
                   onClick={() => {
                     setIsVisible(false);
+                    setCaptureActive(true);
                     TriggerNuiCallback('startZoneRaycast', { multiPoint: true }).then(() => {
-                      // Client will handle multiple point capture and send back via NUI message when ESC pressed
+                      // Client will handle multiple point capture and send back via NUI message when Backspace pressed
                     });
                   }}
                 >

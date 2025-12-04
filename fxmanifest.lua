@@ -27,4 +27,5 @@ files {
   'web/build/index.html',
   'web/build/**/*',
   'shared/locale/*.json',
+  'shared/data/*.json',
 }
