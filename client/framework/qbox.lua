@@ -4,6 +4,7 @@ if GetResourceState('qb-core') ~= 'started' then
 end
 
 local QBCore = exports['qb-core']:GetCoreObject()
+local CacheAPI = require('client.functions.cache')
 
 Framework = {}
 
@@ -46,3 +47,8 @@ function Framework.OnGangUpdate(callback)
         callback(gang)
     end)
 end
+
+RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
+    CacheAPI.init()
+end)
+

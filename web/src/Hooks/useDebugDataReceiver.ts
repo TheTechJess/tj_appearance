@@ -10,6 +10,7 @@ export const useDebugDataReceiver = () => {
   const {
     setTabs,
     setAppearance,
+    setOriginalAppearance,
     setAllowExit,
     setBlacklist,
     setTattoos,
@@ -32,17 +33,20 @@ export const useDebugDataReceiver = () => {
       }
       
       // Ensure modelIndex is set in appearance
-      setAppearance(
-        data.appearance
-          ? {
-              ...data.appearance,
-              modelIndex:
-                typeof data.appearance.modelIndex === 'number'
-                  ? data.appearance.modelIndex
-                  : modelIndex,
-            }
-          : data.appearance
-      );
+      const appearanceData = data.appearance
+        ? {
+            ...data.appearance,
+            modelIndex:
+              typeof data.appearance.modelIndex === 'number'
+                ? data.appearance.modelIndex
+                : modelIndex,
+          }
+        : data.appearance;
+
+      setAppearance(appearanceData);
+      // Cache original appearance for cancel operation (deep copy to prevent reference mutations)
+      setOriginalAppearance(JSON.parse(JSON.stringify(appearanceData)));
+      
       setAllowExit(data.allowExit);
       setBlacklist(data.blacklist);
       setTattoos(data.tattoos);

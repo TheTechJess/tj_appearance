@@ -44,47 +44,131 @@ RegisterCommand('appearance', function()
     }
   end
 
-  handleNuiMessage({
-    action = 'data',
-    data = {
-      tabs = { "heritage", 'face', 'hair', 'clothes', 'accessories', 'makeup', 'tattoos', 'outfits' },
-      appearance = GetPlayerAppearance(),
-      models = models,
-      blacklist = blacklist,
-      tattoos = tattoos,
-      outfits = {},
-      allowExit = true,
-      job = jobData
-    }
-  }, true)
+  -- Fetch player's outfits from database
+  lib.callback('tj_appearance:getOutfits', false, function(outfits)
+    handleNuiMessage({
+      action = 'data',
+      data = {
+        tabs = { "heritage", 'face', 'hair', 'clothes', 'accessories', 'makeup', 'tattoos', 'outfits' },
+        appearance = GetPlayerAppearance(),
+        models = models,
+        blacklist = blacklist,
+        tattoos = tattoos,
+        outfits = outfits or {},
+        allowExit = true,
+        job = jobData
+      }
+    }, true)
 
-  -- Send locked models separately
-  handleNuiMessage({
-    action = 'setLockedModels',
-    data = lockedModels
-  }, true)
+    -- Send locked models separately
+    handleNuiMessage({
+      action = 'setLockedModels',
+      data = lockedModels
+    }, true)
 
-  Wait(100)
-  ToggleCam(true)
-  handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
+    Wait(100)
+    ToggleCam(true)
+    handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
+  end)
 end, false)
 
 RegisterNuiCallback('save', function(data, cb)
-  if _zoneNoclipActive then
-    -- Ignore save while capture mode is active
-    cb('ok')
-    return
-  end
+
+  -- Get current appearance and save to database
+  local appearance = GetPlayerAppearance()
+  lib.callback('tj_appearance:saveAppearance', false, function(success)
+    if success then
+      print('[tj_appearance] Appearance saved successfully')
+    else
+      print('[tj_appearance] Failed to save appearance')
+    end
+  end, appearance)
+
   handleNuiMessage({ action = 'setVisibleApp', data = false }, false)
   ToggleCam(false)
   cb('ok')
 end)
 
+RegisterNuiCallback('saveOutfit', function(outfitData, cb)
+  -- outfitData contains: { label, outfit, job }
+  -- job is optional and indicates if this is a job/gang outfit (admin only)
+  lib.callback('tj_appearance:saveOutfit', false, function(success)
+    if success then
+      print('[tj_appearance] Outfit saved successfully')
+      
+      -- Fetch updated outfits list
+      lib.callback('tj_appearance:getOutfits', false, function(outfits)
+        cb({ 
+          success = true,
+          outfits = outfits 
+        })
+      end)
+    else
+      print('[tj_appearance] Failed to save outfit')
+      cb({ success = false, error = 'Failed to save outfit' })
+    end
+  end, outfitData)
+end)
+
 RegisterNuiCallback('cancel', function(data, cb)
-  if _zoneNoclipActive then
-    cb('ok')
-    return
-  end
+  -- Check if data is different from current appearance
+  local currentAppearance = GetPlayerAppearance()
+  local ped = cache.ped
+  
+  -- Compare data with current appearance
+  if data and type(data) == 'table' then
+    -- Quick comparison of key fields
+
+      -- Restore model if changed
+      if data.model ~= currentAppearance.model then
+        SetModel(ped, data.model)
+        Wait(100) -- Wait for model to load
+      end
+      
+      -- Restore head blend (heritage)
+      if data.headBlend then
+        SetPedHeadBlend(ped, data.headBlend)
+      end
+      
+      -- Restore head structure (face features)
+      if data.headStructure then
+        SetFaceFeatures(ped, data.headStructure)
+      end
+      
+      -- Restore head overlays (makeup, facial hair, etc.)
+      if data.headOverlay then
+        for overlayName, overlayData in pairs(data.headOverlay) do
+          SetHeadOverlay(ped, overlayData)
+        end
+      end
+      
+      -- Restore hair color
+      if data.hairColour then
+        SetPedHairColor(ped, data.hairColour.primary or 0, data.hairColour.highlight or 0)
+      end
+      
+      -- Restore drawables (clothing)
+      if data.drawables then
+        for drawableName, drawableData in pairs(data.drawables) do
+          SetDrawable(ped, drawableData)
+        end
+      end
+      
+      -- Restore props (accessories)
+      if data.props then
+        for propName, propData in pairs(data.props) do
+          SetProp(ped, propData)
+        end
+      end
+      
+      -- Restore tattoos
+      if data.tattoos then
+        _CurrentTattoos = data.tattoos
+        -- ApplyTattoos function is local in set_ped_data.lua, so use the NUI callback
+        handleNuiMessage({ action = 'setTattoos', data = data.tattoos }, false)
+      end
+    end
+  
   handleNuiMessage({ action = 'setVisibleApp', data = false }, false)
   ToggleCam(false)
   cb('ok')

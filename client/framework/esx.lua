@@ -4,6 +4,7 @@ if GetResourceState('es_extended') ~= 'started' then
 end
 
 local ESX = exports['es_extended']:getSharedObject()
+local CacheAPI = require('client.functions.cache')
 
 Framework = {}
 
@@ -43,3 +44,7 @@ end
 function Framework.OnGangUpdate(callback)
     -- ESX doesn't have gangs by default
 end
+
+RegisterNetEvent('esx:playerLoaded', function (xPlayer, skin)
+    CacheAPI.init()
+end)

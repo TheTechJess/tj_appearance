@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Box, Button, Divider, Group, Input, NumberInput, Stack, Text, Paper, Grid } from '@mantine/core';
+import { Box, Button, Divider, Group, Input, NumberInput, Stack, Text, Paper, Grid, Alert } from '@mantine/core';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
+import { useCustomization } from '../../Providers/CustomizationProvider';
 import type { TOutfitData } from '../../types/appearance';
 import { IconCancel } from '../icons/IconCancel';
 import { IconCheck } from '../icons/IconCheck';
 import { IconPlus } from '../icons/IconPlus';
 import { IconImport } from '../icons/IconImport';
+import { IconLock } from '../icons/IconLock';
 import { Menu } from '@mantine/core';
+import { validateOutfit } from '../../Utils/BlacklistValidator';
 
 const Outfits: React.FC = () => {
-    // Inject animation keyframes once
+    const { theme } = useCustomization();
     useEffect(() => {
         if (!document.getElementById('fadeScaleIn-keyframes')) {
             const styleSheet = document.createElement("style");
@@ -29,7 +32,7 @@ const Outfits: React.FC = () => {
             document.head.appendChild(styleSheet);
         }
     }, []);
-    const { outfits, locale, jobData, editOutfit, useOutfit, shareOutfit, itemOutfit, deleteOutfit, saveOutfit, importOutfit } = useAppearanceStore();
+    const { outfits, locale, jobData, blacklist, appearance, editOutfit, useOutfit, shareOutfit, itemOutfit, deleteOutfit, saveOutfit, importOutfit } = useAppearanceStore();
 
     // Separate personal and admin outfits
     const { personalOutfits, adminOutfits } = useMemo(() => {
@@ -50,6 +53,7 @@ const Outfits: React.FC = () => {
     const [newOutfitJobRank, setNewOutfitJobRank] = useState<number>(0);
     const [importOutfitId, setImportOutfitId] = useState<number>(0);
     const [activeDropdownIndex, setActiveDropdownIndex] = useState<number>(-1);
+    const [validationError, setValidationError] = useState<string | null>(null);
 
     const handleRename = (index: number) => {
         if (renameLabel.length > 0 && outfits && outfits[index]) {
@@ -99,6 +103,18 @@ const Outfits: React.FC = () => {
         outfit?: TOutfitData,
         label?: string
     ) => {
+        // Validate outfit before using
+        if (action === 'use' && outfit) {
+            const validation = validateOutfit(outfit, blacklist);
+            if (!validation.isValid) {
+                setValidationError(
+                    `Cannot use outfit: Contains blacklisted items:\n${validation.blacklistedItems.join(', ')}`
+                );
+                setTimeout(() => setValidationError(null), 5000);
+                return;
+            }
+        }
+
         switch (action) {
             case 'use':
                 if (outfit) useOutfit(outfit);
@@ -129,17 +145,86 @@ const Outfits: React.FC = () => {
         setImportOutfitId(0);
     };
 
+    // Validate current appearance before saving as outfit
+    const handleSavePersonalOutfit = () => {
+        if (newOutfitLabel.length === 0) return;
+
+        if (appearance) {
+            const outfitData: TOutfitData = {
+                drawables: appearance.drawables,
+                props: appearance.props,
+                headOverlay: appearance.headOverlay,
+            };
+
+            const validation = validateOutfit(outfitData, blacklist);
+            if (!validation.isValid) {
+                setValidationError(
+                    `Cannot save outfit: Contains blacklisted items:\n${validation.blacklistedItems.join(', ')}`
+                );
+                setTimeout(() => setValidationError(null), 5000);
+                return;
+            }
+        }
+
+        saveOutfit(newOutfitLabel, null);
+        resetNewOutfitFields();
+    };
+
+    const handleSaveJobOutfit = () => {
+        if (newOutfitLabel.length === 0) return;
+
+        if (appearance) {
+            const outfitData: TOutfitData = {
+                drawables: appearance.drawables,
+                props: appearance.props,
+                headOverlay: appearance.headOverlay,
+            };
+
+            const validation = validateOutfit(outfitData, blacklist);
+            if (!validation.isValid) {
+                setValidationError(
+                    `Cannot save job outfit: Contains blacklisted items:\n${validation.blacklistedItems.join(', ')}`
+                );
+                setTimeout(() => setValidationError(null), 5000);
+                return;
+            }
+        }
+
+        saveOutfit(newOutfitLabel, { name: jobData.name, rank: newOutfitJobRank });
+        resetNewOutfitFields();
+    };
+
     return (
         <Stack spacing="lg"
             className="appearance-scroll"
-            style={{
-                padding: '0.25rem 0.75rem',
-                height: "100%",
-                maxHeight: "100%",
-                overflowY: "auto",
-                overflowX: "hidden",
-                paddingBottom: "2rem",
-            }}>
+        style={{
+            padding: '0.25rem 0.75rem',
+            width: '100%',
+            maxWidth: '100%',
+            height: "100%",
+            maxHeight: "100%",
+            overflowY: "auto",
+            overflowX: "hidden",
+            paddingBottom: "2rem",
+        }}>
+
+            {/* Validation Error Alert */}
+            {validationError && (
+                <Alert
+                    icon={<IconLock size={16} />}
+                    title="Blacklisted Items"
+                    color="red"
+                    withCloseButton
+                    onClose={() => setValidationError(null)}
+                    style={{
+                        animation: 'fadeScaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                    }}
+                >
+                    <Text size="sm" style={{ whiteSpace: 'pre-line' }}>
+                        {validationError}
+                    </Text>
+                </Alert>
+            )}
 
             {/* Render personal outfits */}
             {personalOutfits && personalOutfits.length > 0 && (
@@ -158,6 +243,7 @@ const Outfits: React.FC = () => {
                             isAdmin={false}
                             isBoss={jobData.isBoss}
                             locale={locale}
+                            theme={theme}
                             activeDropdownIndex={activeDropdownIndex}
                             setActiveDropdownIndex={setActiveDropdownIndex}
                             renameIndex={renameIndex}
@@ -192,6 +278,7 @@ const Outfits: React.FC = () => {
                             isAdmin={false}
                             isBoss={jobData.isBoss}
                             locale={locale}
+                            theme={theme}
                             activeDropdownIndex={activeDropdownIndex}
                             setActiveDropdownIndex={setActiveDropdownIndex}
                             renameIndex={renameIndex}
@@ -224,18 +311,9 @@ const Outfits: React.FC = () => {
                 setImportOutfitId={setImportOutfitId}
                 jobDataIsBoss={jobData.isBoss}
                 locale={locale}
-                onSavePersonal={() => {
-                    if (newOutfitLabel.length > 0) {
-                        saveOutfit(newOutfitLabel, null);
-                        resetNewOutfitFields();
-                    }
-                }}
-                onSaveJob={() => {
-                    if (newOutfitLabel.length > 0) {
-                        saveOutfit(newOutfitLabel, { name: jobData.name, rank: newOutfitJobRank });
-                        resetNewOutfitFields();
-                    }
-                }}
+                theme={theme}
+                onSavePersonal={handleSavePersonalOutfit}
+                onSaveJob={handleSaveJobOutfit}
                 onImport={() => {
                     if (importOutfitId > 0) {
                         importOutfit(importOutfitId);
@@ -265,6 +343,7 @@ interface OutfitItemProps {
     isAdmin: boolean;
     isBoss: boolean;
     locale: any;
+    theme: any;
     activeDropdownIndex: number;
     setActiveDropdownIndex: (i: number) => void;
     renameIndex: number;
@@ -278,45 +357,76 @@ interface OutfitItemProps {
 }
 
 const OutfitItem: React.FC<OutfitItemProps> = ({
-    label, outfit, id, index, isJob, jobname, isAdmin, isBoss, locale,
+    label, outfit, id, index, isJob, jobname, isAdmin, isBoss, locale, theme,
     activeDropdownIndex, setActiveDropdownIndex, renameIndex, setRenameIndex,
     renameLabel, setRenameLabel, deleteIndex, setDeleteIndex,
     handleOutfitAction, handleRename,
 }) => {
     return (
         <Box>
-            <Text fw={600} mb="sm" size="sm" c="white">
-                {isJob ? `${label} | ${jobname}` : label}
-            </Text>
-            <Button
-                fullWidth
-                radius="md"
-                size="sm"
-                style={{ fontWeight: 600, background: "rgba(0,0,0,0.6)" }}
-                onClick={() => setActiveDropdownIndex(activeDropdownIndex === index ? -1 : index)}
-            >
-                {locale?.OPTIONS_TITLE ?? "Options"}
-            </Button>
+            <Group position="apart" mb="md" spacing="xs" noWrap style={{ display: 'flex', alignItems: 'center' }}>
+                <Text fw={600} size="sm" c="white" style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {isJob ? `${label} | ${jobname}` : label}
+                </Text>
+                <Button
+                    radius="md"
+                    size="sm"
+                    style={{
+                      fontWeight: 600,
+                      background: 'transparent',
+                      border: `2px solid ${theme.primaryColor}`,
+                      color: theme.primaryColor,
+                      transition: 'all 0.2s ease',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.primaryColor;
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = theme.primaryColor;
+                    }}
+                    onClick={() => setActiveDropdownIndex(activeDropdownIndex === index ? -1 : index)}
+                >
+                    {locale?.OPTIONS_TITLE ?? "Options"}
+                </Button>
+            </Group>
             {activeDropdownIndex === index && (
-                <Paper
+                    <Paper
                     shadow="md"
                     radius="md"
                     p="md"
                     style={{
-                        background: '#23272f',
+                        background: 'rgba(20, 20, 30, 0.95)',
+                        border: `1px solid ${theme.primaryColor}40`,
                         marginTop: 10,
                         zIndex: 10,
                         animation: 'fadeScaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
                     }}
                 >
-                    <Group spacing="xs" style={{ justifyContent: 'center' }}>
-                        <Button size="xs" variant="light" color="blue" onClick={() => handleOutfitAction('use', index, outfit)}>
+                    <Group spacing="xs" style={{ justifyContent: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <Button
+                            size="xs"
+                            style={{
+                                backgroundColor: theme.primaryColor,
+                                border: `1px solid ${theme.primaryColor}`,
+                                color: 'white',
+                                cursor: 'pointer',
+                            }}
+                            onClick={() => handleOutfitAction('use', index, outfit)}
+                        >
                             {locale?.USE_TITLE || 'Use'}
                         </Button>
                         <Button
                             size="xs"
-                            variant="light"
-                            color="yellow"
+                            style={{
+                                backgroundColor: 'transparent',
+                                border: `1px solid ${theme.primaryColor}`,
+                                color: theme.primaryColor,
+                                cursor: isJob && !isBoss ? 'not-allowed' : 'pointer',
+                                opacity: isJob && !isBoss ? 0.5 : 1,
+                            }}
                             disabled={isJob && !isBoss}
                             onClick={() => { setRenameIndex(index); setRenameLabel(label); }}
                         >
@@ -325,20 +435,39 @@ const OutfitItem: React.FC<OutfitItemProps> = ({
                         {!isJob && (
                             <Button
                                 size="xs"
-                                variant="light"
-                                color="teal"
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    border: `1px solid ${theme.primaryColor}`,
+                                    color: theme.primaryColor,
+                                    cursor: 'pointer',
+                                }}
                                 onClick={() => handleOutfitAction('share', id as number)}
                             >
                                 {locale?.SHAREOUTFIT_TITLE || 'Share'}
                             </Button>
                         )}
-                        <Button size="xs" variant="light" color="grape" onClick={() => handleOutfitAction('item', index, outfit, label)}>
+                        <Button
+                            size="xs"
+                            style={{
+                                backgroundColor: 'transparent',
+                                border: `1px solid ${theme.primaryColor}`,
+                                color: theme.primaryColor,
+                                cursor: 'pointer',
+                            }}
+                            onClick={() => handleOutfitAction('item', index, outfit, label)}
+                        >
                             {locale?.ITEMOUTFIT_TITLE || 'Item'}
                         </Button>
                         <Button
                             size="xs"
-                            variant="light"
-                            color="red"
+                            style={{
+                                backgroundColor: 'transparent',
+                                border: '1px solid #ef4444',
+                                color: '#ef4444',
+                                cursor: isJob && !isBoss ? 'not-allowed' : 'pointer',
+                                opacity: isJob && !isBoss ? 0.5 : 1,
+                                padding: '4px 8px',
+                            }}
                             disabled={isJob && !isBoss}
                             onClick={() => setDeleteIndex(index)}
                         >
@@ -395,6 +524,7 @@ interface OutfitCreationProps {
     setImportOutfitId: (n: number) => void;
     jobDataIsBoss: boolean;
     locale: any;
+    theme: any;
     onSavePersonal: () => void;
     onSaveJob: () => void;
     onImport: () => void;
@@ -403,7 +533,7 @@ interface OutfitCreationProps {
 const OutfitCreation: React.FC<OutfitCreationProps> = ({
     isAdding, setIsAdding, isJobAdding, setIsJobAdding, isImporting, setIsImporting,
     newOutfitLabel, setNewOutfitLabel, newOutfitJobRank, setNewOutfitJobRank,
-    importOutfitId, setImportOutfitId, jobDataIsBoss, locale,
+    importOutfitId, setImportOutfitId, jobDataIsBoss, locale, theme,
     onSavePersonal, onSaveJob, onImport,
 }) => {
     const resetNewOutfitFields = () => {
@@ -493,6 +623,22 @@ const OutfitCreation: React.FC<OutfitCreationProps> = ({
                 fullWidth
                 size="sm"
                 leftIcon={<IconPlus size={16} />}
+                style={{
+                  backgroundColor: theme.primaryColor,
+                  border: `2px solid ${theme.primaryColor}`,
+                  color: 'white',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = theme.primaryColor;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.primaryColor;
+                  e.currentTarget.style.color = 'white';
+                }}
                 onClick={() => setIsAdding(true)}
             >
                 {locale?.ADDOUTFIT_TITLE || 'Add Personal Outfit'}
@@ -503,8 +649,23 @@ const OutfitCreation: React.FC<OutfitCreationProps> = ({
                     fullWidth
                     size="sm"
                     leftIcon={<IconPlus size={16} />}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: `2px solid ${theme.primaryColor}`,
+                      color: theme.primaryColor,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = theme.primaryColor;
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = theme.primaryColor;
+                    }}
                     onClick={() => setIsJobAdding(true)}
-                    variant="light"
                 >
                     {locale?.ADDJOBOUTFIT || 'Add Job Outfit'}
                 </Button>
@@ -514,8 +675,23 @@ const OutfitCreation: React.FC<OutfitCreationProps> = ({
                 fullWidth
                 size="sm"
                 leftIcon={<IconImport size={16} />}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: `2px solid ${theme.primaryColor}`,
+                  color: theme.primaryColor,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = theme.primaryColor;
+                  e.currentTarget.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = theme.primaryColor;
+                }}
                 onClick={() => setIsImporting(true)}
-                variant="light"
             >
                 {locale?.IMPORTOUTFIT_TITLE || 'Import Outfit'}
             </Button>

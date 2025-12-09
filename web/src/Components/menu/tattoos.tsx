@@ -176,6 +176,8 @@ const Tattoos: FC = () => {
       className="appearance-scroll"
       style={{
         padding: '0.25rem 0.75rem',
+        width: '100%',
+        maxWidth: '100%',
         height: '100%',
         maxHeight: '100%',
         overflowY: 'auto',
@@ -295,10 +297,30 @@ const Tattoos: FC = () => {
       )}
 
       <Button
-        className="btn"
-        style={{ width: '100%', height: '3vh', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5vh' }}
+        style={{
+          width: '100%',
+          height: '3vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5vh',
+          backgroundColor: theme.primaryColor,
+          border: `2px solid ${theme.primaryColor}`,
+          color: 'white',
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+        }}
         onClick={handleAdd}
         disabled={!tattooOptions || tattooOptions.length === 0 || !findFirstTattoo()}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+          e.currentTarget.style.color = theme.primaryColor;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = theme.primaryColor;
+          e.currentTarget.style.color = 'white';
+        }}
       >
         <IconPlus />
         <Text size="sm" fw={600}>

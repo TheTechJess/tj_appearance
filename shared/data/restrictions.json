@@ -1,9 +1,1 @@
-[
-    {
-        "id": "1",
-        "group": "ballas",
-        "gender": "male",
-        "type": "model",
-        "itemId": "a_m_y_business_01"
-    }
-]
+{"ballas_none":{"female":[],"male":[]}}

@@ -153,10 +153,13 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     };
 
     const data = { label, outfit, job };
-    TriggerNuiCallback<any>(Send.saveOutfit, data, data).then((updatedData) => {
-      if (!updatedData) return;
-      setOutfits(updatedData.outfits ?? outfits);
-      setAppearance(updatedData.appearance ?? appearance);
+    TriggerNuiCallback<any>(Send.saveOutfit, data, data).then((response) => {
+      if (!response || !response.success) return;
+      
+      // Update outfits list with the response from server
+      if (response.outfits) {
+        setOutfits(response.outfits);
+      }
     });
   };
 

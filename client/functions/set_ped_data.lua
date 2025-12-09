@@ -50,6 +50,15 @@ end
 
 exports('SetPedDrawable', SetDrawable);
 
+function SetDrawables(ped, Drawdata)
+    if type(Drawdata) ~= 'table' then return end
+
+    for key, drawable in pairs(Drawdata) do
+        SetDrawable(ped, drawable)
+    end
+end
+exports('SetPedDrawables', SetDrawables);
+
 function SetProp(ped, Propdata)
     if not Propdata then return end
 
@@ -64,6 +73,15 @@ function SetProp(ped, Propdata)
 end
 
 exports('SetPedProp', SetProp);
+
+function SetProps(ped, Propdata)
+    if type(Propdata) ~= 'table' then return end
+
+    for _, prop in pairs(Propdata) do
+        SetProp(ped, prop)
+    end
+end
+exports('SetPedProps', SetProps);
 
 
 function SetModel(ped, Model)
@@ -233,3 +251,75 @@ RegisterNuiCallback('setModel', function(data, cb)
         cb(nil)
     end
 end)
+
+-- end NUI CALLBACKS --
+
+
+-- setting ped data
+
+local function SetPedAppearance(ped, data)
+
+            
+    if data then
+        print('Setting ped appearance...')
+        -- Handle drawables
+        if data.drawables then
+            if type(data.drawables) == 'table' then
+                print('Setting drawables...')
+                SetDrawables(ped, data.drawables)
+            end
+        end
+
+        -- Handle props
+        if data.props then
+            if type(data.props) == 'table' then
+                SetProps(ped, data.props)
+            end
+        end
+
+        -- Handle head blend
+        if data.headBlend then
+            SetPedHeadBlend(ped, data.headBlend)
+        end
+
+        -- Handle head overlays (can be array or table)
+        if data.headOverlay then
+            if type(data.headOverlay) == 'table' then
+                -- If it's a table with numeric keys, it's an array
+                local isArray = #data.headOverlay > 0
+                if isArray then
+                    for _, overlay in ipairs(data.headOverlay) do
+                        SetHeadOverlay(ped, overlay)
+                    end
+                else
+                    -- If it's a keyed table (like {makeUp: {...}, complexion: {...}})
+                    for _, overlay in pairs(data.headOverlay) do
+                        if overlay and overlay.id then
+                            SetHeadOverlay(ped, overlay)
+                        end
+                    end
+                end
+            end
+        end
+
+        -- Handle face features
+        if data.headStructure or data.faceFeatures then
+            local features = data.headStructure or data.faceFeatures
+            SetFaceFeatures(ped, features)
+        end
+
+        -- Handle hair color
+        if data.hairColour then
+            SetPedHairTint(ped, data.hairColour.primary or 0, data.hairColour.highlight or 0)
+        end
+
+        -- Handle tattoos
+        if data.tattoos then
+            ApplyTattoos(ped, data.tattoos)
+        end
+    end
+end
+
+exports('SetPedAppearance', SetPedAppearance)
+exports('setPedAppearance', SetPedAppearance)
+
