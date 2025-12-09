@@ -12,6 +12,26 @@ local ServerCache = {
     restrictions = {},
 } 
 
+local TattooZones = {
+    { label = "Torso", zone = "ZONE_TORSO", index = 0 },
+    { label = "Head", zone = "ZONE_HEAD", index = 1 },
+    { label = "Left Arm", zone = "ZONE_LEFT_ARM", index = 2 },
+    { label = "Right Arm", zone = "ZONE_RIGHT_ARM", index = 3 },
+    { label = "Left Leg", zone = "ZONE_LEFT_LEG", index = 4 },
+    { label = "Right Leg", zone = "ZONE_RIGHT_LEG", index = 5 },
+    { label = "Unknown", zone = "ZONE_UNKNOWN", index = 6 },
+    { label = "None", zone = "ZONE_NONE", index = 7 },
+}
+
+local function getZoneInfo(zoneValue)
+    for _, z in ipairs(TattooZones) do
+        if z.zone == zoneValue then
+            return z
+        end
+    end
+    return TattooZones[1] -- default to torso
+end
+
 -- Load all restrictions into cache on startup
 
 
@@ -26,14 +46,106 @@ local function LoadCache()
 
     local restrictionsFile = LoadResourceFile('tj_appearance', 'shared/data/restrictions.json')
     if restrictionsFile then
-        ServerCache.restrictions = json.decode(restrictionsFile) or {}
+        local loadedRestrictions = json.decode(restrictionsFile) or {}
+        
+        -- Check if it's a flat array (old format) and convert to nested structure
+        if loadedRestrictions[1] and not loadedRestrictions[1].male then
+            -- It's a flat array, convert to nested structure
+            local nested = {}
+            for _, restriction in ipairs(loadedRestrictions) do
+                local key = string.format('%s_%s', restriction.job or restriction.group or 'none', restriction.gang or 'none')
+                if not nested[key] then
+                    nested[key] = { male = {}, female = {} }
+                end
+                if not nested[key][restriction.gender] then
+                    nested[key][restriction.gender] = {}
+                end
+                table.insert(nested[key][restriction.gender], restriction)
+            end
+            ServerCache.restrictions = nested
+        else
+            -- Already in nested format
+            ServerCache.restrictions = loadedRestrictions
+        end
     else
         ServerCache.restrictions = {}
     end
 
     local tattoosFile = LoadResourceFile('tj_appearance', 'shared/data/tattoos.json')
     if tattoosFile then
-        ServerCache.tattoos = json.decode(tattoosFile) or {}
+        local loadedTattoos = json.decode(tattoosFile) or {}
+
+        -- Convert simple DLC array (strings or objects) to nested zone structure for UI compatibility
+        -- Simple format: [{ dlc: "name", tattoos: ["tat1", { label, hashMale, hashFemale, zone? }] }]
+        if loadedTattoos[1] and loadedTattoos[1].dlc and not loadedTattoos[1].label then
+            local zonesByKey = {}
+
+            for dlcIndex, dlcData in ipairs(loadedTattoos) do
+                for _, tattooValue in ipairs(dlcData.tattoos or {}) do
+                    local label = tattooValue
+                    local hashMale = tattooValue
+                    local hashFemale = tattooValue
+                    local zoneValue = dlcData.zone
+
+                    if type(tattooValue) == 'table' then
+                        label = tattooValue.label or tattooValue.name or tattooValue.hashMale or tattooValue.hashFemale or ''
+                        hashMale = tattooValue.hashMale or tattooValue.hash or tattooValue.name or label
+                        hashFemale = tattooValue.hashFemale or tattooValue.hash or tattooValue.name or label
+                        zoneValue = tattooValue.zone or tattooValue.zoneIndex and TattooZones[(tattooValue.zoneIndex or 0) + 1] and TattooZones[(tattooValue.zoneIndex or 0) + 1].zone or zoneValue
+                    end
+
+                    local zoneInfo = getZoneInfo(zoneValue)
+                    local zoneKey = zoneInfo.zone
+
+                    if not zonesByKey[zoneKey] then
+                        zonesByKey[zoneKey] = {
+                            label = zoneInfo.label,
+                            zone = zoneInfo.zone,
+                            zoneIndex = zoneInfo.index,
+                            dlcs = {},
+                            _dlcLookup = {}
+                        }
+                    end
+
+                    local zoneEntry = zonesByKey[zoneKey]
+                    local dlcEntry = zoneEntry._dlcLookup[dlcData.dlc]
+
+                    if not dlcEntry then
+                        dlcEntry = {
+                            label = dlcData.dlc,
+                            dlcIndex = #zoneEntry.dlcs,
+                            tattoos = {}
+                        }
+                        zoneEntry._dlcLookup[dlcData.dlc] = dlcEntry
+                        table.insert(zoneEntry.dlcs, dlcEntry)
+                    end
+
+                    table.insert(dlcEntry.tattoos, {
+                        label = label,
+                        hash = hashMale,
+                        hashMale = hashMale,
+                        hashFemale = hashFemale,
+                        opacity = 1.0,
+                        dlc = dlcData.dlc,
+                        zone = zoneInfo.index or 0,
+                        price = tattooValue.price or tattooValue.price
+                    })
+                end
+            end
+
+            local nested = {}
+            for _, zoneEntry in pairs(zonesByKey) do
+                zoneEntry._dlcLookup = nil
+                table.insert(nested, zoneEntry)
+            end
+
+            table.sort(nested, function(a, b) return (a.zoneIndex or 0) < (b.zoneIndex or 0) end)
+
+            ServerCache.tattoos = nested
+        else
+            -- Already in nested format or empty
+            ServerCache.tattoos = loadedTattoos
+        end
     else
         ServerCache.tattoos = {}
     end
@@ -133,9 +245,81 @@ end)
 lib.callback.register('tj_appearance:admin:saveTattoos', function(source, tattoos)
     if not IsAdmin(source) then return false end
 
-    ServerCache.tattoos = tattoos or {}
-    SaveResourceFile(GetCurrentResourceName(), 'shared/data/tattoos.json', json.encode(ServerCache.tattoos), -1)
+    -- Tattoos come from admin menu in simple DLC format
+    -- Save the simple format (now supporting label/hashMale/hashFemale) to file
+    SaveResourceFile(GetCurrentResourceName(), 'shared/data/tattoos.json', json.encode(tattoos or {}), -1)
+    
+    -- Convert to nested format for UI
+    local zonesByKey = {}
 
+    for dlcIndex, dlcData in ipairs(tattoos or {}) do
+        for _, tattooValue in ipairs(dlcData.tattoos or {}) do
+            local label = tattooValue
+            local hashMale = tattooValue
+            local hashFemale = tattooValue
+            local zoneValue = dlcData.zone
+            local zoneIndex = nil
+
+            if type(tattooValue) == 'table' then
+                label = tattooValue.label or tattooValue.name or tattooValue.hashMale or tattooValue.hashFemale or ''
+                hashMale = tattooValue.hashMale or tattooValue.hash or tattooValue.name or label
+                hashFemale = tattooValue.hashFemale or tattooValue.hash or tattooValue.name or label
+                zoneValue = tattooValue.zone or zoneValue
+                zoneIndex = tattooValue.zoneIndex
+            end
+
+            if zoneIndex ~= nil and not zoneValue and TattooZones[(zoneIndex or 0) + 1] then
+                zoneValue = TattooZones[(zoneIndex or 0) + 1].zone
+            end
+
+            local zoneInfo = getZoneInfo(zoneValue)
+            local zoneKey = zoneInfo.zone
+
+            if not zonesByKey[zoneKey] then
+                zonesByKey[zoneKey] = {
+                    label = zoneInfo.label,
+                    zone = zoneInfo.zone,
+                    zoneIndex = zoneInfo.index,
+                    dlcs = {},
+                    _dlcLookup = {}
+                }
+            end
+
+            local zoneEntry = zonesByKey[zoneKey]
+            local dlcEntry = zoneEntry._dlcLookup[dlcData.dlc]
+
+            if not dlcEntry then
+                dlcEntry = {
+                    label = dlcData.dlc,
+                    dlcIndex = #zoneEntry.dlcs,
+                    tattoos = {}
+                }
+                zoneEntry._dlcLookup[dlcData.dlc] = dlcEntry
+                table.insert(zoneEntry.dlcs, dlcEntry)
+            end
+
+            table.insert(dlcEntry.tattoos, {
+                label = label,
+                hash = hashMale,
+                hashMale = hashMale,
+                hashFemale = hashFemale,
+                opacity = 1.0,
+                dlc = dlcData.dlc,
+                zone = zoneInfo.index or 0,
+                price = tattooValue.price or tattooValue.price
+            })
+        end
+    end
+
+    local nested = {}
+    for _, zoneEntry in pairs(zonesByKey) do
+        zoneEntry._dlcLookup = nil
+        table.insert(nested, zoneEntry)
+    end
+
+    table.sort(nested, function(a, b) return (a.zoneIndex or 0) < (b.zoneIndex or 0) end)
+
+    ServerCache.tattoos = nested
     TriggerClientEvent('tj_appearance:client:updateTattoos', -1, ServerCache.tattoos)
     return true
 end)

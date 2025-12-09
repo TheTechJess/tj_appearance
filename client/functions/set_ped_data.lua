@@ -153,6 +153,7 @@ local function ApplyTattoos(ped, tattoos)
     if not tattoos or type(tattoos) ~= 'table' then return end
 
     local tattooOptions = CacheAPI and CacheAPI.getTattoos and CacheAPI.getTattoos() or nil
+    local isMale = IsPedMale(ped)
 
     for _, entry in ipairs(tattoos) do
         local tattooData = entry and entry.tattoo
@@ -166,8 +167,10 @@ local function ApplyTattoos(ped, tattoos)
                 collection = dlc and dlc.label
             end
 
-            if collection and tattooData.hash then
-                AddPedDecorationFromHashes(ped, joaat(collection), tattooData.hash)
+            local hashString = isMale and (tattooData.hashMale or tattooData.hash) or (tattooData.hashFemale or tattooData.hash)
+
+            if collection and hashString and hashString ~= '' then
+                AddPedDecorationFromHashes(ped, joaat(collection), joaat(hashString))
             end
         end
     end

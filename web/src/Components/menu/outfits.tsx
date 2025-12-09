@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Box, Button, Divider, Group, Input, NumberInput, Stack, Text, Paper, Grid } from '@mantine/core';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { TOutfitData } from '../../types/appearance';
@@ -30,6 +30,15 @@ const Outfits: React.FC = () => {
         }
     }, []);
     const { outfits, locale, jobData, editOutfit, useOutfit, shareOutfit, itemOutfit, deleteOutfit, saveOutfit, importOutfit } = useAppearanceStore();
+
+    // Separate personal and admin outfits
+    const { personalOutfits, adminOutfits } = useMemo(() => {
+        if (!outfits) return { personalOutfits: [], adminOutfits: [] };
+        return {
+            personalOutfits: outfits.filter(o => !o.jobname),
+            adminOutfits: outfits.filter(o => o.jobname),
+        };
+    }, [outfits]);
 
     const [renameIndex, setRenameIndex] = useState<number>(-1);
     const [renameLabel, setRenameLabel] = useState<string>('');
@@ -127,130 +136,390 @@ const Outfits: React.FC = () => {
                 padding: '0.25rem 0.75rem',
                 height: "100%",
                 maxHeight: "100%",
-                overflowY: "auto",   // browser scroll only
+                overflowY: "auto",
                 overflowX: "hidden",
-                paddingBottom: "2rem",  // ⬅️ Add bottom padding here
+                paddingBottom: "2rem",
             }}>
 
+            {/* Render personal outfits */}
+            {personalOutfits && personalOutfits.length > 0 && (
+                <>
+                    <Text fw={700} size="lg" c="white" tt="uppercase" mb="md">
+                        Personal Outfits
+                    </Text>
+                    {personalOutfits.map(({ label, outfit, id }: any, i: number) => (
+                        <OutfitItem
+                            key={id || i}
+                            label={label}
+                            outfit={outfit}
+                            id={id}
+                            index={i}
+                            isJob={false}
+                            isAdmin={false}
+                            isBoss={jobData.isBoss}
+                            locale={locale}
+                            activeDropdownIndex={activeDropdownIndex}
+                            setActiveDropdownIndex={setActiveDropdownIndex}
+                            renameIndex={renameIndex}
+                            setRenameIndex={setRenameIndex}
+                            renameLabel={renameLabel}
+                            setRenameLabel={setRenameLabel}
+                            deleteIndex={deleteIndex}
+                            setDeleteIndex={setDeleteIndex}
+                            handleOutfitAction={handleOutfitAction}
+                            handleRename={handleRename}
+                        />
+                    ))}
+                    <Divider my="lg" />
+                </>
+            )}
 
-            {outfits && outfits.length > 0 ? (
-                outfits.map(({ label, outfit, id, jobname }: any, i: number) => (
-                    <React.Fragment key={id || i}>
+            {/* Render admin/job outfits */}
+            {adminOutfits && adminOutfits.length > 0 && (
+                <>
+                    <Text fw={700} size="lg" c="white" tt="uppercase" mb="md">
+                        Job / Gang Outfits
+                    </Text>
+                    {adminOutfits.map(({ label, outfit, id, jobname }: any, i: number) => (
+                        <OutfitItem
+                            key={id || i}
+                            label={label}
+                            outfit={outfit}
+                            id={id}
+                            index={i}
+                            isJob={true}
+                            jobname={jobname}
+                            isAdmin={false}
+                            isBoss={jobData.isBoss}
+                            locale={locale}
+                            activeDropdownIndex={activeDropdownIndex}
+                            setActiveDropdownIndex={setActiveDropdownIndex}
+                            renameIndex={renameIndex}
+                            setRenameIndex={setRenameIndex}
+                            renameLabel={renameLabel}
+                            setRenameLabel={setRenameLabel}
+                            deleteIndex={deleteIndex}
+                            setDeleteIndex={setDeleteIndex}
+                            handleOutfitAction={handleOutfitAction}
+                            handleRename={handleRename}
+                        />
+                    ))}
+                    <Divider my="lg" />
+                </>
+            )}
 
-                        <Box>
+            {/* New outfit buttons */}
+            <OutfitCreation
+                isAdding={isAdding}
+                setIsAdding={setIsAdding}
+                isJobAdding={isJobAdding}
+                setIsJobAdding={setIsJobAdding}
+                isImporting={isImporting}
+                setIsImporting={setIsImporting}
+                newOutfitLabel={newOutfitLabel}
+                setNewOutfitLabel={setNewOutfitLabel}
+                newOutfitJobRank={newOutfitJobRank}
+                setNewOutfitJobRank={setNewOutfitJobRank}
+                importOutfitId={importOutfitId}
+                setImportOutfitId={setImportOutfitId}
+                jobDataIsBoss={jobData.isBoss}
+                locale={locale}
+                onSavePersonal={() => {
+                    if (newOutfitLabel.length > 0) {
+                        saveOutfit(newOutfitLabel, null);
+                        resetNewOutfitFields();
+                    }
+                }}
+                onSaveJob={() => {
+                    if (newOutfitLabel.length > 0) {
+                        saveOutfit(newOutfitLabel, { name: jobData.name, rank: newOutfitJobRank });
+                        resetNewOutfitFields();
+                    }
+                }}
+                onImport={() => {
+                    if (importOutfitId > 0) {
+                        importOutfit(importOutfitId);
+                        resetImportFields();
+                    }
+                }}
+            />
 
-                            <Text fw={600} mb="sm" ta="right" tt="uppercase" size="sm" c="white">{jobname ? `${label} | JOB` : label || 'Mother'}</Text>
-                            <Button
-
-                                fullWidth
-                                radius="md"
-                                style={{ fontWeight: 600, letterSpacing: 1, marginBottom: 4, background: "rgba(0,0,0,0.6)", }}
-                                onClick={() => setActiveDropdownIndex(activeDropdownIndex === i ? -1 : i)}
-                            >
-                                {locale?.OPTIONS_TITLE ?? "Options"}
-                            </Button>
-                            {activeDropdownIndex === i && (
-
-                                <Paper
-                                    shadow="md"
-                                    radius="md"
-                                    p="md"
-                                    style={{
-                                        background: '#23272f',
-                                        marginTop: 10,
-                                        zIndex: 10,
-                                        animation: 'fadeScaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
-                                    }}
-                                >
-
-                                    <div style={{
-                                        display: 'flex',
-                                        flexDirection: 'row',
-                                        flexWrap: 'nowrap',
-                                        justifyContent: 'center',
-                                        gap: '0.3rem',
-                                        width: '100%',
-                                    }}>
-                                        <Button size="xs" variant="light" color="blue" radius="md" style={{ fontWeight: 500, minWidth: 70, paddingLeft: 4, paddingRight: 4 }} onClick={() => handleOutfitAction('use', i, outfit)}>
-                                            <ShrinkText>{locale?.USE_TITLE || 'Use'}</ShrinkText>
-                                        </Button>
-                                        <Button
-                                            size="xs"
-                                            variant="light"
-                                            color="yellow"
-                                            radius="md"
-                                            disabled={!!jobname && !jobData.isBoss}
-                                            style={{ fontWeight: 500, minWidth: 70, paddingLeft: 4, paddingRight: 4 }}
-                                            onClick={() => { setRenameIndex(i); setRenameLabel(label); }}
-                                        >
-                                            <ShrinkText>{locale?.EDIT_TITLE || 'Edit'}</ShrinkText>
-                                        </Button>
-                                        {!jobname && (
-                                            <Button
-                                                size="xs"
-                                                variant="light"
-                                                color="teal"
-                                                radius="md"
-                                                disabled={!!jobname && !jobData.isBoss}
-                                                style={{ fontWeight: 500, minWidth: 70, paddingLeft: 4, paddingRight: 4 }}
-                                                onClick={() => handleOutfitAction('share', id)}
-                                            >
-                                                <ShrinkText>{locale?.SHAREOUTFIT_TITLE || 'Share'}</ShrinkText>
-                                            </Button>
-                                        )}  
-                                        <Button size="xs" variant="light" color="grape" radius="md" style={{ fontWeight: 500, minWidth: 70, paddingLeft: 4, paddingRight: 4 }} onClick={() => handleOutfitAction('item', i, outfit, label)}>
-                                            <ShrinkText>{locale?.ITEMOUTFIT_TITLE || 'Item'}</ShrinkText>
-                                        </Button>
-                                        <Button
-                                            size="xs"
-                                            variant="light"
-                                            color="red"
-                                            radius="md"
-                                            style={{ fontWeight: 500, minWidth: 40, paddingLeft: 4, paddingRight: 4 }}
-                                            disabled={!!jobname && !jobData.isBoss}
-                                            onClick={() => setDeleteIndex(i)}
-                                        >
-                                            <IconCancel size={24} />
-                                        </Button>
-                                    </div>
-
-                                    {renameIndex === i && (
-                                        <Group spacing="xs" style={{ justifyContent: 'center', gap: '0.5vh', marginTop: '0.5vh' }}>
-                                            <Input
-                                                value={renameLabel}
-                                                onChange={e => setRenameLabel(e.currentTarget.value)}
-                                                placeholder="Rename outfit"
-                                            />
-                                            <Button size="xs" color="red" radius="md" style={{ aspectRatio: '1/1', padding: '0.5vh' }} onClick={() => setRenameIndex(-1)}>
-                                                <IconCancel />
-                                            </Button>
-                                            <Button size="xs" color="green" radius="md" style={{ aspectRatio: '1/1', padding: '0.5vh' }} onClick={() => handleRename(i)}>
-                                                <IconCheck />
-                                            </Button>
-                                        </Group>
-                                    )}
-
-                                    {deleteIndex === i && (
-                                        <Group spacing="xs" style={{ justifyContent: 'center', gap: '0.5vh', width: '100%', marginTop: '0.5vh' }}>
-                                            <Button size="xs" radius="md" onClick={() => setDeleteIndex(-1)}>{locale?.CANCEL_TITLE || 'Cancel'}</Button>
-                                            <Button size="xs" color="red" radius="md" onClick={() => handleOutfitAction('delete', id)}>{locale?.CONFIRMREM_SUBTITLE || 'Confirm'}</Button>
-                                        </Group>
-                                    )}
-                                </Paper>
-
-                            )}
-
-                        </Box>
-                        <Divider my="sm" />
-                    </React.Fragment>
-                ))
-            ) : (
-                <Text fw={600} mb="sm" ta="right" tt="uppercase" size="sm" c="white">
-                    {locale?.NO_OUTFITS || "You can't modify your makeup"}
+            {!personalOutfits?.length && !adminOutfits?.length && (
+                <Text fw={600} mb="sm" ta="center" tt="uppercase" size="sm" c="dimmed">
+                    {locale?.NO_OUTFITS || "No outfits configured"}
                 </Text>
             )}
 
-        </Stack >
+        </Stack>
+    );
+};
+
+// OutfitItem component
+interface OutfitItemProps {
+    label: string;
+    outfit: TOutfitData;
+    id: number | string;
+    index: number;
+    isJob: boolean;
+    jobname?: string;
+    isAdmin: boolean;
+    isBoss: boolean;
+    locale: any;
+    activeDropdownIndex: number;
+    setActiveDropdownIndex: (i: number) => void;
+    renameIndex: number;
+    setRenameIndex: (i: number) => void;
+    renameLabel: string;
+    setRenameLabel: (s: string) => void;
+    deleteIndex: number;
+    setDeleteIndex: (i: number) => void;
+    handleOutfitAction: (action: string, index: number, outfit?: TOutfitData, label?: string) => void;
+    handleRename: (index: number) => void;
+}
+
+const OutfitItem: React.FC<OutfitItemProps> = ({
+    label, outfit, id, index, isJob, jobname, isAdmin, isBoss, locale,
+    activeDropdownIndex, setActiveDropdownIndex, renameIndex, setRenameIndex,
+    renameLabel, setRenameLabel, deleteIndex, setDeleteIndex,
+    handleOutfitAction, handleRename,
+}) => {
+    return (
+        <Box>
+            <Text fw={600} mb="sm" size="sm" c="white">
+                {isJob ? `${label} | ${jobname}` : label}
+            </Text>
+            <Button
+                fullWidth
+                radius="md"
+                size="sm"
+                style={{ fontWeight: 600, background: "rgba(0,0,0,0.6)" }}
+                onClick={() => setActiveDropdownIndex(activeDropdownIndex === index ? -1 : index)}
+            >
+                {locale?.OPTIONS_TITLE ?? "Options"}
+            </Button>
+            {activeDropdownIndex === index && (
+                <Paper
+                    shadow="md"
+                    radius="md"
+                    p="md"
+                    style={{
+                        background: '#23272f',
+                        marginTop: 10,
+                        zIndex: 10,
+                        animation: 'fadeScaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                    }}
+                >
+                    <Group spacing="xs" style={{ justifyContent: 'center' }}>
+                        <Button size="xs" variant="light" color="blue" onClick={() => handleOutfitAction('use', index, outfit)}>
+                            {locale?.USE_TITLE || 'Use'}
+                        </Button>
+                        <Button
+                            size="xs"
+                            variant="light"
+                            color="yellow"
+                            disabled={isJob && !isBoss}
+                            onClick={() => { setRenameIndex(index); setRenameLabel(label); }}
+                        >
+                            {locale?.EDIT_TITLE || 'Edit'}
+                        </Button>
+                        {!isJob && (
+                            <Button
+                                size="xs"
+                                variant="light"
+                                color="teal"
+                                onClick={() => handleOutfitAction('share', id as number)}
+                            >
+                                {locale?.SHAREOUTFIT_TITLE || 'Share'}
+                            </Button>
+                        )}
+                        <Button size="xs" variant="light" color="grape" onClick={() => handleOutfitAction('item', index, outfit, label)}>
+                            {locale?.ITEMOUTFIT_TITLE || 'Item'}
+                        </Button>
+                        <Button
+                            size="xs"
+                            variant="light"
+                            color="red"
+                            disabled={isJob && !isBoss}
+                            onClick={() => setDeleteIndex(index)}
+                        >
+                            <IconCancel size={16} />
+                        </Button>
+                    </Group>
+
+                    {renameIndex === index && (
+                        <Group spacing="xs" style={{ justifyContent: 'center', marginTop: '0.5rem' }}>
+                            <Input
+                                size="xs"
+                                value={renameLabel}
+                                onChange={e => setRenameLabel(e.currentTarget.value)}
+                                placeholder="Rename outfit"
+                            />
+                            <Button size="xs" color="red" onClick={() => setRenameIndex(-1)}>
+                                <IconCancel size={14} />
+                            </Button>
+                            <Button size="xs" color="green" onClick={() => handleRename(index)}>
+                                <IconCheck size={14} />
+                            </Button>
+                        </Group>
+                    )}
+
+                    {deleteIndex === index && (
+                        <Group spacing="xs" style={{ justifyContent: 'center', marginTop: '0.5rem' }}>
+                            <Button size="xs" onClick={() => setDeleteIndex(-1)}>
+                                {locale?.CANCEL_TITLE || 'Cancel'}
+                            </Button>
+                            <Button size="xs" color="red" onClick={() => handleOutfitAction('delete', id as number)}>
+                                {locale?.CONFIRMREM_SUBTITLE || 'Confirm'}
+                            </Button>
+                        </Group>
+                    )}
+                </Paper>
+            )}
+        </Box>
+    );
+};
+
+// OutfitCreation component
+interface OutfitCreationProps {
+    isAdding: boolean;
+    setIsAdding: (b: boolean) => void;
+    isJobAdding: boolean;
+    setIsJobAdding: (b: boolean) => void;
+    isImporting: boolean;
+    setIsImporting: (b: boolean) => void;
+    newOutfitLabel: string;
+    setNewOutfitLabel: (s: string) => void;
+    newOutfitJobRank: number;
+    setNewOutfitJobRank: (n: number) => void;
+    importOutfitId: number;
+    setImportOutfitId: (n: number) => void;
+    jobDataIsBoss: boolean;
+    locale: any;
+    onSavePersonal: () => void;
+    onSaveJob: () => void;
+    onImport: () => void;
+}
+
+const OutfitCreation: React.FC<OutfitCreationProps> = ({
+    isAdding, setIsAdding, isJobAdding, setIsJobAdding, isImporting, setIsImporting,
+    newOutfitLabel, setNewOutfitLabel, newOutfitJobRank, setNewOutfitJobRank,
+    importOutfitId, setImportOutfitId, jobDataIsBoss, locale,
+    onSavePersonal, onSaveJob, onImport,
+}) => {
+    const resetNewOutfitFields = () => {
+        setIsAdding(false);
+        setIsJobAdding(false);
+        setNewOutfitLabel('');
+        setNewOutfitJobRank(0);
+    };
+
+    const resetImportFields = () => {
+        setIsImporting(false);
+        setImportOutfitId(0);
+    };
+
+    if (isAdding || isJobAdding) {
+        return (
+            <Box style={{ animation: 'fadeScaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1)' }}>
+                <Text fw={600} mb="sm" size="sm" c="white" tt="uppercase">
+                    {isJobAdding ? (locale?.ADDJOBOUTFIT || 'Add Job Outfit') : (locale?.NEWOUTFIT_TITLE || 'New Outfit')}
+                </Text>
+                <Group spacing="xs">
+                    <Input
+                        size="sm"
+                        placeholder="Outfit Label"
+                        value={newOutfitLabel}
+                        onChange={(e) => setNewOutfitLabel(e.currentTarget.value)}
+                    />
+                    {isJobAdding && jobDataIsBoss && (
+                        <NumberInput
+                            size="sm"
+                            placeholder="Job Rank"
+                            min={0}
+                            value={newOutfitJobRank}
+                            onChange={(val) => setNewOutfitJobRank(val || 0)}
+                            style={{ width: 100 }}
+                        />
+                    )}
+                    <Button size="xs" color="red" onClick={resetNewOutfitFields}>
+                        <IconCancel size={14} />
+                    </Button>
+                    <Button
+                        size="xs"
+                        color="green"
+                        onClick={isJobAdding ? onSaveJob : onSavePersonal}
+                        disabled={newOutfitLabel.length === 0}
+                    >
+                        <IconCheck size={14} />
+                    </Button>
+                </Group>
+            </Box>
+        );
+    }
+
+    if (isImporting) {
+        return (
+            <Box style={{ animation: 'fadeScaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1)' }}>
+                <Text fw={600} mb="sm" size="sm" c="white" tt="uppercase">
+                    {locale?.IMPORTOUTFIT_TITLE || 'Import Outfit'}
+                </Text>
+                <Group spacing="xs">
+                    <Input
+                        size="sm"
+                        placeholder="Outfit Code"
+                        type="number"
+                        value={importOutfitId}
+                        onChange={(e) => setImportOutfitId(parseInt(e.currentTarget.value) || 0)}
+                    />
+                    <Button size="xs" color="red" onClick={resetImportFields}>
+                        <IconCancel size={14} />
+                    </Button>
+                    <Button
+                        size="xs"
+                        color="green"
+                        onClick={onImport}
+                        disabled={importOutfitId <= 0}
+                    >
+                        <IconCheck size={14} />
+                    </Button>
+                </Group>
+            </Box>
+        );
+    }
+
+    return (
+        <Stack spacing="sm">
+            <Button
+                fullWidth
+                size="sm"
+                leftIcon={<IconPlus size={16} />}
+                onClick={() => setIsAdding(true)}
+            >
+                {locale?.ADDOUTFIT_TITLE || 'Add Personal Outfit'}
+            </Button>
+
+            {jobDataIsBoss && (
+                <Button
+                    fullWidth
+                    size="sm"
+                    leftIcon={<IconPlus size={16} />}
+                    onClick={() => setIsJobAdding(true)}
+                    variant="light"
+                >
+                    {locale?.ADDJOBOUTFIT || 'Add Job Outfit'}
+                </Button>
+            )}
+
+            <Button
+                fullWidth
+                size="sm"
+                leftIcon={<IconImport size={16} />}
+                onClick={() => setIsImporting(true)}
+                variant="light"
+            >
+                {locale?.IMPORTOUTFIT_TITLE || 'Import Outfit'}
+            </Button>
+        </Stack>
     );
 };
 

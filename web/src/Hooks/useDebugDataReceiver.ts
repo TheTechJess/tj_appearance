@@ -25,13 +25,10 @@ export const useDebugDataReceiver = () => {
     // Set all the data
       setModels(data.models);
       
-      // Calculate modelIndex based on the model name
+      // Use the modelIndex directly from appearance data
       let modelIndex = 0;
-      if (data.appearance && data.models) {
-        const foundIndex = data.models.indexOf(data.appearance.model);
-        if (foundIndex !== -1) {
-          modelIndex = foundIndex;
-        }
+      if (data.appearance && typeof data.appearance.model === 'number') {
+        modelIndex = data.appearance.model;
       }
       
       // Ensure modelIndex is set in appearance

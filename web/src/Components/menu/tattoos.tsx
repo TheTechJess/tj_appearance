@@ -60,7 +60,10 @@ const Tattoos: FC = () => {
 
   const handleAdd = () => {
     const starter = findFirstTattoo();
-    if (!starter) return;
+    if (!starter) {
+      console.warn('No tattoos available in the catalog. Please configure tattoos in the admin menu first.');
+      return;
+    }
     commit((prev) => [
       ...prev,
       {
@@ -295,6 +298,7 @@ const Tattoos: FC = () => {
         className="btn"
         style={{ width: '100%', height: '3vh', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5vh' }}
         onClick={handleAdd}
+        disabled={!tattooOptions || tattooOptions.length === 0 || !findFirstTattoo()}
       >
         <IconPlus />
         <Text size="sm" fw={600}>

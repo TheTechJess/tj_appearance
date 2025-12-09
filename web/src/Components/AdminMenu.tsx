@@ -1,10 +1,17 @@
-import { FC, useEffect, useState } from 'react';
-import { Tabs, ColorPicker, Button, Stack, Group, Text, TextInput, Select, ActionIcon, Modal, Checkbox, Accordion, Badge, Box, NumberInput } from '@mantine/core';
-import { IconPalette, IconLock, IconPlus, IconTrash, IconChevronDown, IconUser, IconShoppingCart, IconMapPin, IconHanger, IconDownload, IconFeather } from '@tabler/icons-react';
+import { FC, useEffect, useState, useMemo, lazy, Suspense } from 'react';
+import { Tabs, Button, Stack, Group, Text, TextInput, Select, ActionIcon, Modal, Checkbox, Accordion, Badge, Box, NumberInput, Divider, Loader, Overlay } from '@mantine/core';
+import { IconPalette, IconLock, IconUser, IconShoppingCart, IconMapPin, IconHanger, IconDownload, IconFeather, IconMars, IconVenus } from '@tabler/icons-react';
 import { TriggerNuiCallback } from '../Utils/TriggerNuiCallback';
 import { HandleNuiMessage } from '../Hooks/HandleNuiMessage';
-import { CameraShape } from './micro/CameraShape';
-import type { TZoneTattoo } from '../types/appearance';
+
+import { useCustomization } from '../Providers/CustomizationProvider';
+const TattoosTab = lazy(() => import('./admin/TattoosTab').then(mod => ({ default: mod.TattoosTab })));
+const ThemeTab = lazy(() => import('./admin/ThemeTab').then(mod => ({ default: mod.ThemeTab })));
+const ModelsTab = lazy(() => import('./admin/ModelsTab').then(mod => ({ default: mod.ModelsTab })));
+const RestrictionsTab = lazy(() => import('./admin/RestrictionsTab').then(mod => ({ default: mod.RestrictionsTab })));
+const ShopsTab = lazy(() => import('./admin/ShopsTab').then(mod => ({ default: mod.ShopsTab })));
+const ZonesTab = lazy(() => import('./admin/ZonesTab').then(mod => ({ default: mod.ZonesTab })));
+const OutfitsTab = lazy(() => import('./admin/OutfitsTab').then(mod => ({ default: mod.OutfitsTab })));
 
 interface ThemeConfig {
   primaryColor: string; // Active tab color
@@ -65,16 +72,27 @@ interface JobOutfit {
   outfitData: any; // Appearance data JSON
 }
 
+interface TattooEntry {
+  label: string;
+  hashMale: string;
+  hashFemale: string;
+  zone?: string;
+  zoneIndex?: number;
+  price?: number;
+}
+
+interface TattooDLC {
+  dlc: string;
+  tattoos: TattooEntry[];
+}
+
 type PartType = 'model' | 'drawable' | 'prop';
 
 export const AdminMenu: FC = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [captureActive, setCaptureActive] = useState(false);
-  const [theme, setTheme] = useState<ThemeConfig>({
-    primaryColor: '#3b82f6',
-    inactiveColor: '#202020ff',
-    shape: 'hexagon',
-  });
+  const { theme: cachedTheme } = useCustomization();
+  const [theme, setTheme] = useState<ThemeConfig>(cachedTheme);
   const [restrictions, setRestrictions] = useState<ClothingRestriction[]>([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newRestriction, setNewRestriction] = useState<Partial<ClothingRestriction>>({
@@ -117,7 +135,16 @@ export const AdminMenu: FC = () => {
   const [newOutfit, setNewOutfit] = useState<Partial<JobOutfit>>({ gender: 'male' });
 
   // Tattoos State
-  const [tattoos, setTattoos] = useState<TZoneTattoo[]>([]);
+  const [tattoos, setTattoos] = useState<TattooDLC[]>([]);
+  const [expandedDlc, setExpandedDlc] = useState<string | null>(null);
+  const [expandedRestriction, setExpandedRestriction] = useState<string | null>(null);
+
+  // Loading State
+  const [activeTab, setActiveTab] = useState<string | null>('theme');
+  const [isLoadingTab, setIsLoadingTab] = useState(false);
+  const [dataLoadProgress, setDataLoadProgress] = useState({ theme: false, restrictions: false, models: false, tattoos: false });
+  const [themeReady, setThemeReady] = useState(false);
+  const [menuMounted, setMenuMounted] = useState(false);
 
   const categoryOptionsByPart: Record<PartType, { value: string; label: string }[]> = {
     model: [{ value: 'model', label: 'Model' }],
@@ -135,16 +162,50 @@ export const AdminMenu: FC = () => {
     ],
   };
 
+  const tattooZoneOptions = [
+    { value: 'ZONE_TORSO', label: 'Torso', zoneIndex: 0 },
+    { value: 'ZONE_HEAD', label: 'Head', zoneIndex: 1 },
+    { value: 'ZONE_LEFT_ARM', label: 'Left Arm', zoneIndex: 2 },
+    { value: 'ZONE_RIGHT_ARM', label: 'Right Arm', zoneIndex: 3 },
+    { value: 'ZONE_LEFT_LEG', label: 'Left Leg', zoneIndex: 4 },
+    { value: 'ZONE_RIGHT_LEG', label: 'Right Leg', zoneIndex: 5 },
+    { value: 'ZONE_UNKNOWN', label: 'Unknown', zoneIndex: 6 },
+    { value: 'ZONE_NONE', label: 'None', zoneIndex: 7 },
+  ];
+
   HandleNuiMessage<boolean>('setVisibleAdminMenu', (visible) => {
     setIsVisible(visible);
   });
 
+  HandleNuiMessage<ThemeConfig>('setThemeConfig', (data) => {
+    // Defer theme update to prevent blocking
+    requestAnimationFrame(() => {
+      setTheme(data);
+      setDataLoadProgress(prev => ({ ...prev, theme: true }));
+    });
+  });
+
   HandleNuiMessage<ClothingRestriction[]>('setRestrictions', (data) => {
-    setRestrictions(data || []);
+    // Ensure data is always an array
+    if (Array.isArray(data)) {
+      // Defer the heavy grouping work to next animation frame
+      requestAnimationFrame(() => {
+        setRestrictions(data);
+        setDataLoadProgress(prev => ({ ...prev, restrictions: true }));
+      });
+    } else {
+      console.warn('Received non-array restrictions data:', data);
+      setRestrictions([]);
+      setDataLoadProgress(prev => ({ ...prev, restrictions: true }));
+    }
   });
 
   HandleNuiMessage<string[]>('setModels', (data) => {
-    setModels(data || []);
+    // Defer the heavy sorting work to next animation frame
+    requestAnimationFrame(() => {
+      setModels(data || []);
+      setDataLoadProgress(prev => ({ ...prev, models: true }));
+    });
   });
 
   HandleNuiMessage<string[]>('setLockedModels', (data) => {
@@ -163,8 +224,56 @@ export const AdminMenu: FC = () => {
     setZones(data);
   });
 
-  HandleNuiMessage<TZoneTattoo[]>('setTattoos', (data) => {
-    setTattoos(data || []);
+  HandleNuiMessage<any>('setTattoos', (data) => {
+    // Defer heavy processing to allow UI to load first
+    requestAnimationFrame(() => {
+      // Convert nested zone format to simple DLC format for admin menu
+      if (data && data[0] && data[0].dlcs) {
+        // It's nested format, extract DLCs
+        const simpleDLCs: TattooDLC[] = [];
+        data.forEach((zone: any) => {
+          (zone.dlcs || []).forEach((dlc: any) => {
+            simpleDLCs.push({
+              dlc: dlc.label || '',
+              tattoos: (dlc.tattoos || []).map((t: any) => ({
+                label: t.label || t.hash || '',
+                hashMale: t.hashMale || t.hash || t.label || '',
+                hashFemale: t.hashFemale || t.hash || t.label || '',
+                zone: zone.zone || 'ZONE_TORSO',
+                zoneIndex: typeof zone.zoneIndex === 'number' ? zone.zoneIndex : 0,
+                price: typeof t.price === 'number' ? t.price : undefined,
+              })),
+            });
+          });
+        });
+        setTattoos(simpleDLCs);
+        setDataLoadProgress(prev => ({ ...prev, tattoos: true }));
+      } else if (data && data[0] && data[0].dlc) {
+        // Already simple format, normalize tattoo entries
+        const normalized: TattooDLC[] = (data as any[]).map((dlc: any) => ({
+          dlc: dlc.dlc || '',
+          tattoos: (dlc.tattoos || []).map((t: any) => (
+            typeof t === 'string'
+              ? { label: t, hashMale: t, hashFemale: t, zone: 'ZONE_TORSO', zoneIndex: 0 }
+              : {
+                  label: t.label || t.hash || '',
+                  hashMale: t.hashMale || t.hash || t.label || '',
+                  hashFemale: t.hashFemale || t.hash || t.label || '',
+                  zone: t.zone || (typeof t.zoneIndex === 'number' ? (tattooZoneOptions.find((z) => z.zoneIndex === t.zoneIndex)?.value || 'ZONE_TORSO') : 'ZONE_TORSO'),
+                  zoneIndex: typeof t.zoneIndex === 'number'
+                    ? t.zoneIndex
+                    : tattooZoneOptions.find((z) => z.value === t.zone)?.zoneIndex ?? 0,
+                  price: typeof t.price === 'number' ? t.price : undefined,
+                }
+          )),
+        }));
+        setTattoos(normalized);
+        setDataLoadProgress(prev => ({ ...prev, tattoos: true }));
+      } else {
+        setTattoos([]);
+        setDataLoadProgress(prev => ({ ...prev, tattoos: true }));
+      }
+    });
   });
 
   HandleNuiMessage<JobOutfit[]>('setOutfits', (data) => {
@@ -216,7 +325,35 @@ export const AdminMenu: FC = () => {
     }
   }, [editingZone]);
 
+  // Sync local theme state with cached theme from provider
+  useEffect(() => {
+    setTheme(cachedTheme);
+  }, [cachedTheme]);
+
   useEffect(() => {}, [isVisible]);
+
+  // Mount the menu structure after becoming visible to show loading spinner first
+  useEffect(() => {
+    if (isVisible && !menuMounted) {
+      // Mount on the next frame to show immediately without added delay
+      const id = requestAnimationFrame(() => setMenuMounted(true));
+      return () => cancelAnimationFrame(id);
+    } else if (!isVisible && menuMounted) {
+      setMenuMounted(false);
+    }
+  }, [isVisible, menuMounted]);
+
+  // Defer heavy ColorPicker rendering until theme data is loaded
+  useEffect(() => {
+    if (dataLoadProgress.theme && !themeReady) {
+      // Double requestAnimationFrame to ensure the loading spinner renders first
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setThemeReady(true);
+        });
+      });
+    }
+  }, [dataLoadProgress.theme, themeReady]);
 
   const handleSaveThemeAndShape = () => {
     TriggerNuiCallback('saveTheme', theme).then(() => {
@@ -270,161 +407,145 @@ export const AdminMenu: FC = () => {
     setIsVisible(false);
   };
 
-  const normalizeTattooData = (data: TZoneTattoo[]) =>
-    (data || []).map((zone, zoneIndex) => ({
-      ...zone,
-      zoneIndex,
-      dlcs: (zone.dlcs || []).map((dlc, dlcIndex) => ({
-        ...dlc,
-        dlcIndex,
-        tattoos: (dlc.tattoos || []).map((tattoo) => ({
-          ...tattoo,
-          opacity: typeof tattoo.opacity === 'number' ? tattoo.opacity : 1,
-          dlc: dlc.label,
-        })),
-      })),
-    }));
-
-  const updateTattoos = (updater: (prev: TZoneTattoo[]) => TZoneTattoo[]) => {
-    setTattoos((prev) => normalizeTattooData(updater(prev || [])));
+  const handleTabChange = (tabValue: string | null) => {
+    // Switch immediately and clear loading on the next frame to avoid perceived delay
+    setIsLoadingTab(true);
+    setActiveTab(tabValue);
+    requestAnimationFrame(() => setIsLoadingTab(false));
   };
 
-  const handleAddZone = () => {
-    updateTattoos((prev) => [
-      ...prev,
-      { label: `Zone ${prev.length + 1}`, zone: `zone_${prev.length + 1}`, zoneIndex: prev.length, dlcs: [] },
-    ]);
+  // Tattoo handlers - simplified for DLC-based structure
+  const handleAddDlc = () => {
+    setTattoos([...tattoos, { dlc: '', tattoos: [] }]);
   };
 
-  const handleUpdateZoneLabel = (index: number, field: 'label' | 'zone', value: string) => {
-    updateTattoos((prev) => prev.map((zone, idx) => (idx === index ? { ...zone, [field]: value } : zone)));
+  const handleUpdateDlcName = (dlcIndex: number, name: string) => {
+    setTattoos(prev => prev.map((dlc, idx) => idx === dlcIndex ? { ...dlc, dlc: name } : dlc));
   };
 
-  const handleDeleteZone = (index: number) => {
-    updateTattoos((prev) => prev.filter((_, idx) => idx !== index));
+  const handleDeleteDlc = (dlcIndex: number) => {
+    setTattoos(prev => prev.filter((_, idx) => idx !== dlcIndex));
   };
 
-  const handleAddDlc = (zoneIndex: number) => {
-    updateTattoos((prev) =>
-      prev.map((zone, idx) =>
-        idx === zoneIndex
-          ? {
-              ...zone,
-              dlcs: [
-                ...(zone.dlcs || []),
-                { label: `dlc_${(zone.dlcs?.length || 0) + 1}`, dlcIndex: zone.dlcs?.length || 0, tattoos: [] },
-              ],
-            }
-          : zone
-      )
-    );
+  const handleAddTattoo = (dlcIndex: number) => {
+    setTattoos(prev => prev.map((dlc, idx) => 
+      idx === dlcIndex 
+        ? { ...dlc, tattoos: [...(dlc.tattoos || []), { label: '', hashMale: '', hashFemale: '', zone: 'ZONE_TORSO', zoneIndex: 0 }] }
+        : dlc
+    ));
   };
 
-  const handleUpdateDlcLabel = (zoneIndex: number, dlcIndex: number, label: string) => {
-    updateTattoos((prev) =>
-      prev.map((zone, zIdx) =>
-        zIdx === zoneIndex
-          ? {
-              ...zone,
-              dlcs: (zone.dlcs || []).map((dlc, dIdx) =>
-                dIdx === dlcIndex
-                  ? {
-                      ...dlc,
-                      label,
-                      tattoos: (dlc.tattoos || []).map((tattoo) => ({ ...tattoo, dlc: label })),
-                    }
-                  : dlc
-              ),
-            }
-          : zone
-      )
-    );
+  const handleUpdateTattooField = (dlcIndex: number, tattooIndex: number, field: keyof TattooEntry, value: string | number) => {
+    setTattoos(prev => prev.map((dlc, dIdx) => 
+      dIdx === dlcIndex
+        ? {
+            ...dlc,
+            tattoos: (dlc.tattoos || []).map((t, tIdx) => tIdx === tattooIndex ? { ...t, [field]: value } : t)
+          }
+        : dlc
+    ));
   };
 
-  const handleDeleteDlc = (zoneIndex: number, dlcIndex: number) => {
-    updateTattoos((prev) =>
-      prev.map((zone, zIdx) =>
-        zIdx === zoneIndex ? { ...zone, dlcs: (zone.dlcs || []).filter((_, dIdx) => dIdx !== dlcIndex) } : zone
-      )
-    );
+  const handleUpdateTattooZone = (dlcIndex: number, tattooIndex: number, zoneValue: string | null) => {
+    const zone = tattooZoneOptions.find((z) => z.value === zoneValue) || tattooZoneOptions[0];
+    setTattoos(prev => prev.map((dlc, dIdx) =>
+      dIdx === dlcIndex
+        ? {
+            ...dlc,
+            tattoos: (dlc.tattoos || []).map((t, tIdx) =>
+              tIdx === tattooIndex ? { ...t, zone: zone.value, zoneIndex: zone.zoneIndex } : t
+            )
+          }
+        : dlc
+    ));
   };
 
-  const handleAddTattooEntry = (zoneIndex: number, dlcIndex: number) => {
-    updateTattoos((prev) =>
-      prev.map((zone, zIdx) =>
-        zIdx === zoneIndex
-          ? {
-              ...zone,
-              dlcs: (zone.dlcs || []).map((dlc, dIdx) =>
-                dIdx === dlcIndex
-                  ? {
-                      ...dlc,
-                      tattoos: [
-                        ...(dlc.tattoos || []),
-                        { label: 'New Tattoo', hash: 0, zone: zone.zoneIndex ?? zIdx, opacity: 1, dlc: dlc.label },
-                      ],
-                    }
-                  : dlc
-              ),
-            }
-          : zone
-      )
-    );
-  };
-
-  const handleUpdateTattooField = (
-    zoneIndex: number,
-    dlcIndex: number,
-    tattooIndex: number,
-    field: 'label' | 'hash' | 'opacity'
-  ) => (value: string | number) => {
-    updateTattoos((prev) =>
-      prev.map((zone, zIdx) =>
-        zIdx === zoneIndex
-          ? {
-              ...zone,
-              dlcs: (zone.dlcs || []).map((dlc, dIdx) =>
-                dIdx === dlcIndex
-                  ? {
-                      ...dlc,
-                      tattoos: (dlc.tattoos || []).map((tattoo, tIdx) => {
-                        if (tIdx !== tattooIndex) return tattoo;
-                        if (field === 'label') return { ...tattoo, label: String(value) };
-                        if (field === 'hash') return { ...tattoo, hash: Number(value) || 0 };
-                        const nextOpacity = Math.max(0, Math.min(1, Number(value) || 0));
-                        return { ...tattoo, opacity: nextOpacity };
-                      }),
-                    }
-                  : dlc
-              ),
-            }
-          : zone
-      )
-    );
-  };
-
-  const handleDeleteTattooEntry = (zoneIndex: number, dlcIndex: number, tattooIndex: number) => {
-    updateTattoos((prev) =>
-      prev.map((zone, zIdx) =>
-        zIdx === zoneIndex
-          ? {
-              ...zone,
-              dlcs: (zone.dlcs || []).map((dlc, dIdx) =>
-                dIdx === dlcIndex
-                  ? { ...dlc, tattoos: (dlc.tattoos || []).filter((_, tIdx) => tIdx !== tattooIndex) }
-                  : dlc
-              ),
-            }
-          : zone
-      )
-    );
+  const handleDeleteTattoo = (dlcIndex: number, tattooIndex: number) => {
+    setTattoos(prev => prev.map((dlc, dIdx) =>
+      dIdx === dlcIndex
+        ? { ...dlc, tattoos: (dlc.tattoos || []).filter((_, tIdx) => tIdx !== tattooIndex) }
+        : dlc
+    ));
   };
 
   const handleSaveTattoos = () => {
-    const normalized = normalizeTattooData(tattoos);
-    setTattoos(normalized);
-    TriggerNuiCallback('saveTattoos', normalized).then(() => {});
+    TriggerNuiCallback('saveTattoos', tattoos).then(() => {});
   };
+
+  const handleImportTattoos = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async (e: any) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        
+        // Handle both array of tattoo objects and DLC pack format
+        let imported: TattooDLC[] = [];
+        
+        if (Array.isArray(data)) {
+          if (data[0]?.dlc) {
+            // Already in DLC format
+            imported = data.map((dlc: any) => ({
+              dlc: dlc.dlc || '',
+              tattoos: (dlc.tattoos || []).map((t: any) => ({
+                label: t.label || t.name || t.hashMale || '',
+                hashMale: t.hashMale || t.hash || '',
+                hashFemale: t.hashFemale || t.hash || '',
+                zone: t.zone || 'ZONE_TORSO',
+                zoneIndex: typeof t.zoneIndex === 'number' ? t.zoneIndex : 0,
+                price: typeof t.price === 'number' ? t.price : undefined,
+              })),
+            }));
+          } else if (data[0]?.hashMale || data[0]?.name) {
+            // Individual tattoo array (rcore format), group by collection/zone
+            const byCollection: Record<string, TattooEntry[]> = {};
+            data.forEach((tattoo: any) => {
+              const dlcKey = tattoo.collection || tattoo.dlc || 'Default';
+              if (!byCollection[dlcKey]) byCollection[dlcKey] = [];
+              byCollection[dlcKey].push({
+                label: tattoo.name || tattoo.label || tattoo.hashMale || '',
+                hashMale: tattoo.hashMale || tattoo.hash || '',
+                hashFemale: tattoo.hashFemale || tattoo.hash || '',
+                zone: tattoo.zone || 'ZONE_TORSO',
+                zoneIndex: typeof tattoo.zoneIndex === 'number' ? tattoo.zoneIndex : (tattoo.zone ? tattooZoneOptions.findIndex((z) => z.value === tattoo.zone) : 0),
+                price: typeof tattoo.price === 'number' ? tattoo.price : undefined,
+              });
+            });
+            imported = Object.entries(byCollection).map(([dlcName, entries]) => ({
+              dlc: dlcName,
+              tattoos: entries,
+            }));
+          }
+        }
+        
+        if (imported.length > 0) {
+          setTattoos([...tattoos, ...imported]);
+        }
+      } catch (err) {
+        console.error('Failed to import tattoos:', err);
+        alert('Failed to import tattoos. Check console for details.');
+      }
+    };
+    input.click();
+  };
+
+  // Memoize grouped restrictions to avoid expensive recalculation during renders
+  const groupedRestrictions = useMemo(() => {
+    if (!Array.isArray(restrictions)) return {};
+    return restrictions.reduce((acc, r) => {
+      const key = r.group || r.job || r.gang || 'Unknown';
+      const identifierKey = r.identifier || 'all';
+      if (!acc[key]) acc[key] = {};
+      if (!acc[key][identifierKey]) acc[key][identifierKey] = [];
+      acc[key][identifierKey].push(r);
+      return acc;
+    }, {} as Record<string, Record<string, ClothingRestriction[]>>);
+  }, [restrictions]);
 
   if (!isVisible || captureActive) return null;
 
@@ -440,6 +561,12 @@ export const AdminMenu: FC = () => {
         zIndex: 9999,
       }}
     >
+      {!menuMounted ? (
+        <div style={{ textAlign: 'center' }}>
+          <Loader color="blue" size="xl" />
+          <Text c="white" mt="lg" size="md">Loading admin menu...</Text>
+        </div>
+      ) : (
       <div
         style={{
           backgroundColor: '#1a1a1a',
@@ -460,7 +587,8 @@ export const AdminMenu: FC = () => {
           </Button>
         </Group>
 
-        <Tabs defaultValue="theme" color="blue">
+        <div style={{ position: 'relative' }}>
+        <Tabs value={activeTab} onTabChange={handleTabChange} color="blue">
           <Tabs.List>
             <Tabs.Tab value="theme">
               <IconPalette size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
@@ -493,843 +621,143 @@ export const AdminMenu: FC = () => {
           </Tabs.List>
 
           <Tabs.Panel value="theme" pt="xl">
-            <Stack spacing="xl">
-              <div>
-                <Text c="white" fw={600} mb="md" size="sm">
-                  Theme Colors
-                </Text>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                  <div>
-                    <Text c="dimmed" size="xs" mb="xs">
-                      Active Tab
-                    </Text>
-                    <ColorPicker
-                      value={theme.primaryColor}
-                      onChange={(color) => setTheme({ ...theme, primaryColor: color })}
-                      format="hex"
-                      fullWidth
-                      swatchesPerRow={10}
-                      swatches={[
-                        '#ef4444',
-                        '#f97316',
-                        '#f59e0b',
-                        '#eab308',
-                        '#84cc16',
-                        '#22c55e',
-                        '#10b981',
-                        '#14b8a6',
-                        '#06b6d4',
-                        '#0ea5e9',
-                        '#3b82f6',
-                        '#6366f1',
-                        '#8b5cf6',
-                        '#a855f7',
-                        '#d946ef',
-                        '#ec4899',
-                        '#f43f5e',
-                      ]}
-                    />
-                  </div>
-                  <div>
-                    <Text c="dimmed" size="xs" mb="xs">
-                      Inactive Tab
-                    </Text>
-                    <ColorPicker
-                      value={theme.inactiveColor}
-                      onChange={(color) => setTheme({ ...theme, inactiveColor: color })}
-                      format="hex"
-                      fullWidth
-                      swatchesPerRow={10}
-                      swatches={['#171717', '#262626', '#404040', '#525252', '#737373', '#a3a3a3', '#d4d4d4', '#f5f5f5', '#ffffff']}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Text c="white" fw={600} mb="md" size="sm">
-                  Camera Shape
-                </Text>
-                <Select
-                  value={theme.shape || 'hexagon'}
-                  onChange={(value) => {
-                    if (value === 'hexagon' || value === 'circle' || value === 'square' || value === 'diamond' || value === 'pentagon') {
-                      setTheme({ ...theme, shape: value });
-                    }
-                  }}
-                  data={[
-                    { value: 'hexagon', label: 'Hexagon' },
-                    { value: 'circle', label: 'Circle' },
-                    { value: 'square', label: 'Square' },
-                    { value: 'diamond', label: 'Diamond' },
-                    { value: 'pentagon', label: 'Pentagon' },
-                  ]}
-                />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
-                  <div>
-                    <Text c="dimmed" size="xs" mb="xs" ta="center">
-                      Active Preview
-                    </Text>
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
-                      <div style={{ width: 80, height: 80 }}>
-                        <CameraShape
-                          type={theme.shape || 'hexagon'}
-                          stroke={theme.primaryColor}
-                          fill={`${theme.primaryColor}33`}
-                          strokeWidth={2}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <Text c="dimmed" size="xs" mb="xs" ta="center">
-                      Inactive Preview
-                    </Text>
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '1rem', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 8 }}>
-                      <div style={{ width: 80, height: 80 }}>
-                        <CameraShape
-                          type={theme.shape || 'hexagon'}
-                          stroke={theme.inactiveColor}
-                          fill={`${theme.inactiveColor}33`}
-                          strokeWidth={2}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                onClick={handleSaveThemeAndShape}
-                fullWidth
-                size="md"
-                styles={{
-                  root: {
-                    backgroundColor: theme.primaryColor,
-                    '&:hover': {
-                      opacity: 0.9,
-                      backgroundColor: theme.primaryColor,
-                    },
-                  },
-                }}
-              >
-                Save Theme & Shape Settings
-              </Button>
-            </Stack>
+            <ThemeTab
+              theme={theme}
+              setTheme={setTheme}
+              onSave={handleSaveThemeAndShape}
+              isLoading={isLoadingTab && activeTab === 'theme'}
+              isReady={dataLoadProgress.theme && themeReady}
+            />
           </Tabs.Panel>
 
           <Tabs.Panel value="restrictions" pt="xl">
-            <Stack spacing="lg">
-              <Group position="apart">
-                <Text c="white" fw={500}>
-                  Job/Gang Restrictions (split by gender)
-                </Text>
-                <Button onClick={() => setAddModalOpen(true)}>
-                  <IconPlus size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                  Add Restriction
-                </Button>
-              </Group>
-
-              <div style={{ overflowX: 'auto' }}>
-                {restrictions.length === 0 ? (
-                  <Box style={{ padding: '2rem', textAlign: 'center', color: '#888', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
-                    No restrictions configured
-                  </Box>
-                ) : (
-                  <Accordion
-                    chevronPosition="right"
-                    variant="separated"
-                    styles={{
-                      item: {
-                        backgroundColor: 'rgba(255,255,255,0.03)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        marginBottom: '0.5rem',
-                      },
-                      control: {
-                        '&:hover': {
-                          backgroundColor: 'rgba(255,255,255,0.05)',
-                        },
-                      },
-                    }}
-                  >
-                    {(() => {
-                      // Group restrictions by group (or job/gang), then by identifier
-                      const grouped = restrictions.reduce((acc, r) => {
-                        const key = r.group || r.job || r.gang || 'Unknown';
-                        const identifierKey = r.identifier || 'all';
-                        if (!acc[key]) acc[key] = {};
-                        if (!acc[key][identifierKey]) acc[key][identifierKey] = [];
-                        acc[key][identifierKey].push(r);
-                        return acc;
-                      }, {} as Record<string, Record<string, ClothingRestriction[]>>);
-
-                      return Object.entries(grouped).map(([jobGang, identifierGroups]) => {
-                        const totalCount = Object.values(identifierGroups).flat().length;
-                        const type = restrictions.find(r => (r.group || r.job || r.gang) === jobGang)?.job ? 'Job' : 'Gang';
-                        
-                        return (
-                          <Accordion.Item key={jobGang} value={jobGang}>
-                            <Accordion.Control>
-                              <Group position="apart" style={{ width: '100%', paddingRight: '1rem' }}>
-                                <Group spacing="sm">
-                                  <Text fw={600} c="white" tt="capitalize">
-                                    {jobGang}
-                                  </Text>
-                                  <Badge size="sm" color="blue" variant="light">
-                                    {type}
-                                  </Badge>
-                                  <Badge size="sm" color="gray" variant="outline">
-                                    {totalCount} restriction{totalCount !== 1 ? 's' : ''}
-                                  </Badge>
-                                </Group>
-                              </Group>
-                            </Accordion.Control>
-                            <Accordion.Panel>
-                              <Stack spacing="md">
-                                {Object.entries(identifierGroups).map(([identifier, items]) => (
-                                  <Box key={identifier} style={{ backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '1rem' }}>
-                                    <Group position="apart" mb="sm">
-                                      <Group spacing="xs">
-                                        <Text size="sm" fw={500} c="dimmed">
-                                          {identifier === 'all' ? '🌐 All Players' : `👤 ${identifier}`}
-                                        </Text>
-                                      </Group>
-                                    </Group>
-                                    <Stack spacing="xs">
-                                      {items.map((r) => (
-                                        <Group
-                                          key={r.id}
-                                          position="apart"
-                                          style={{
-                                            padding: '0.5rem',
-                                            backgroundColor: 'rgba(255,255,255,0.02)',
-                                            borderRadius: 4,
-                                            border: '1px solid rgba(255,255,255,0.05)',
-                                          }}
-                                        >
-                                          <Group spacing="sm">
-                                            <Badge size="sm" color={r.gender === 'male' ? 'blue' : 'pink'} variant="filled">
-                                              {r.gender === 'male' ? '♂' : '♀'} {r.gender}
-                                            </Badge>
-                                            <Badge size="sm" color="cyan" variant="light">
-                                              {r.part || r.type}
-                                            </Badge>
-                                            <Text size="sm" c="white">
-                                              {r.category ? `${r.category}:` : ''} <strong>#{r.itemId}</strong>
-                                            </Text>
-                                            <Badge size="xs" color="grape" variant="outline">
-                                              {r.texturesAll ? 'All Textures' : r.textures?.length ? `Textures: ${r.textures.join(', ')}` : 'No Textures'}
-                                            </Badge>
-                                          </Group>
-                                          <ActionIcon color="red" size="sm" onClick={() => handleDeleteRestriction(r.id)}>
-                                            <IconTrash size={14} />
-                                          </ActionIcon>
-                                        </Group>
-                                      ))}
-                                    </Stack>
-                                  </Box>
-                                ))}
-                              </Stack>
-                            </Accordion.Panel>
-                          </Accordion.Item>
-                        );
-                      });
-                    })()}
-                  </Accordion>
-                )}
-              </div>
-
-              {/* Advanced JSON sets removed per request */}
-            </Stack>
+            <Box style={{ position: 'relative' }}>
+              {isLoadingTab && activeTab === 'restrictions' && (
+                <Overlay blur={2} center>
+                  <Loader color="blue" />
+                </Overlay>
+              )}
+              <Suspense fallback={
+                <Box style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
+                  <Loader color="blue" size="md" />
+                  <Text c="dimmed" mt="md" size="sm">Loading restrictions...</Text>
+                </Box>
+              }>
+                <RestrictionsTab
+                  restrictions={restrictions}
+                  setRestrictions={setRestrictions}
+                  groupedRestrictions={groupedRestrictions}
+                  models={models}
+                  expandedRestriction={expandedRestriction}
+                  setExpandedRestriction={setExpandedRestriction}
+                  isLoading={!dataLoadProgress.restrictions}
+                  isReady={true}
+                />
+              </Suspense>
+            </Box>
           </Tabs.Panel>
 
           <Tabs.Panel value="models" pt="xl">
-            <Stack spacing="lg">
-              <Group position="apart">
-                <Group>
-                  <Text c="white" fw={500}>
-                    Available Player Models
-                  </Text>
-                  <Checkbox
-                    label="Select All (Lock from Everyone)"
-                    description="Check models to lock them from everyone. Unchecked models are available to all players."
-                    checked={selectedModels.length > 0 && selectedModels.length === models.filter(m => m !== 'mp_m_freemode_01' && m !== 'mp_f_freemode_01').length}
-                    indeterminate={selectedModels.length > 0 && selectedModels.length < models.filter(m => m !== 'mp_m_freemode_01' && m !== 'mp_f_freemode_01').length}
-                    onChange={(e) => {
-                      if (e.currentTarget.checked) {
-                        // Select all non-freemode models
-                        setSelectedModels(models.filter(m => m !== 'mp_m_freemode_01' && m !== 'mp_f_freemode_01'));
-                      } else {
-                        // Deselect all
-                        setSelectedModels([]);
-                      }
-                    }}
-                    styles={{
-                      label: { color: '#fff', fontSize: '0.9rem' },
-                      description: { color: '#888', fontSize: '0.8rem', marginTop: 4 }
-                    }}
-                  />
-                </Group>
-                <Group>
-                  {selectedModels.length > 0 && (
-                    <>
-                      <Button 
-                        color="blue" 
-                        size="sm"
-                        onClick={() => {
-                          // Only add newly selected models; do not unlock unchecked ones
-                          const additions = selectedModels.filter(m => !lockedModelsSaved.includes(m));
-                          if (additions.length === 0) return;
-                          TriggerNuiCallback('addLockedModels', { models: additions }).then((updated) => {
-                            // Reflect saved locks locally
-                            setLockedModelsSaved(prev => Array.from(new Set([...prev, ...additions])));
-                            // Clear selection after save
-                            setSelectedModels([]);
-                          });
-                        }}
-                      >
-                        Save Locked Models
-                      </Button>
-                      <Button 
-                        color="red" 
-                        size="sm"
-                        onClick={() => {
-                          TriggerNuiCallback('deleteModels', selectedModels).then(() => {
-                            setModels(models.filter(m => !selectedModels.includes(m)));
-                            setSelectedModels([]);
-                          });
-                        }}
-                      >
-                        <IconTrash size={16} style={{ marginRight: 8 }} />
-                        Delete ({selectedModels.length})
-                      </Button>
-                    </>
-                  )}
-                  <Button onClick={() => setAddModelModalOpen(true)}>
-                    <IconPlus size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                    Add Model
-                  </Button>
-                </Group>
-              </Group>
-
-              <div style={{ overflowX: 'auto' }}>
-                {models.length === 0 ? (
-                  <Box style={{ padding: '2rem', textAlign: 'center', color: '#888', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
-                    No models configured
-                  </Box>
-                ) : (
-                  <Stack spacing="xs">
-                    {(() => {
-                      // Always show freemode models first
-                      const freemodeModels = ['mp_m_freemode_01', 'mp_f_freemode_01'];
-                      const otherModels = models.filter(m => !freemodeModels.includes(m));
-                      const sortedModels = [...freemodeModels.filter(m => models.includes(m)), ...otherModels];
-                      
-                      return sortedModels.map((model, idx) => {
-                        const isFreemode = freemodeModels.includes(model);
-                        const isSelected = selectedModels.includes(model);
-                        const isLockedSaved = lockedModelsSaved.includes(model);
-                        return (
-                          <Group
-                            key={idx}
-                            position="apart"
-                            style={{
-                              padding: '0.75rem 1rem',
-                              backgroundColor: isSelected 
-                                ? 'rgba(59, 130, 246, 0.2)' 
-                                : isLockedSaved
-                                  ? 'rgba(239, 68, 68, 0.10)'
-                                  : idx % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)',
-                              borderRadius: 6,
-                              border: isFreemode ? '1px solid rgba(59, 130, 246, 0.3)' : (isLockedSaved ? '1px solid rgba(239, 68, 68, 0.35)' : '1px solid rgba(255,255,255,0.05)'),
-                              cursor: isFreemode ? 'default' : 'pointer',
-                            }}
-                            onClick={() => {
-                              if (isFreemode) return;
-                              setSelectedModels(prev => 
-                                prev.includes(model) 
-                                  ? prev.filter(m => m !== model)
-                                  : [...prev, model]
-                              );
-                            }}
-                          >
-                            <Group spacing="sm">
-                              {!isFreemode && (
-                                <Checkbox
-                                  checked={isSelected}
-                                  onChange={() => {}}
-                                  onClick={(e) => e.stopPropagation()}
-                                />
-                              )}
-                              <IconUser size={18} color={isFreemode ? '#3b82f6' : (isLockedSaved ? '#ef4444' : '#888')} />
-                              <Text c="white" fw={isFreemode ? 600 : 500}>
-                                {model}
-                              </Text>
-                              {isFreemode && (
-                                <Badge size="xs" color="blue" variant="light">
-                                  Protected
-                                </Badge>
-                              )}
-                              {!isFreemode && isSelected && (
-                                <Badge size="xs" color="blue" variant="light">
-                                  To Lock
-                                </Badge>
-                              )}
-                              {!isFreemode && isLockedSaved && (
-                                <Badge size="xs" color="red" variant="filled">
-                                  Locked
-                                </Badge>
-                              )}
-                            </Group>
-                            {!isFreemode && !isSelected && (
-                              <ActionIcon 
-                                color="red" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  TriggerNuiCallback('deleteModel', model).then(() => {
-                                    setModels(models.filter(m => m !== model));
-                                  });
-                                }}
-                              >
-                                <IconTrash size={16} />
-                              </ActionIcon>
-                            )}
-                          </Group>
-                        );
-                      });
-                    })()}
-                  </Stack>
-                )}
-              </div>
-            </Stack>
+            <Box style={{ position: 'relative' }}>
+              {isLoadingTab && activeTab === 'models' && (
+                <Overlay blur={2} center>
+                  <Loader color="blue" />
+                </Overlay>
+              )}
+              <Suspense fallback={
+                <Box style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
+                  <Loader color="blue" size="md" />
+                  <Text c="dimmed" mt="md" size="sm">Loading models...</Text>
+                </Box>
+              }>
+                <ModelsTab
+                  models={models}
+                  setModels={setModels}
+                  selectedModels={selectedModels}
+                  setSelectedModels={setSelectedModels}
+                  lockedModelsSaved={lockedModelsSaved}
+                  setLockedModelsSaved={setLockedModelsSaved}
+                  isLoading={!dataLoadProgress.models}
+                  isReady={true}
+                />
+              </Suspense>
+            </Box>
           </Tabs.Panel>
 
           <Tabs.Panel value="shops" pt="xl">
-            <Stack spacing="xl">
-              <div>
-                <Text c="white" fw={600} mb="md" size="sm">
-                  Global Shop Settings
-                </Text>
-                <Stack spacing="md">
-                  <Checkbox
-                    label="Enable Peds for Shops"
-                    description="Allow NPCs to appear at shop locations"
-                    checked={shopSettings.enablePedsForShops}
-                    onChange={(e) => setShopSettings({ ...shopSettings, enablePedsForShops: e.currentTarget.checked })}
-                    styles={{
-                      label: { color: '#fff', fontSize: '0.9rem' },
-                      description: { color: '#888', fontSize: '0.8rem', marginTop: 4 }
-                    }}
-                  />
-                  <Checkbox
-                    label="Enable Peds for Clothing Rooms"
-                    description="Allow NPCs in clothing change rooms"
-                    checked={shopSettings.enablePedsForClothingRooms}
-                    onChange={(e) => setShopSettings({ ...shopSettings, enablePedsForClothingRooms: e.currentTarget.checked })}
-                    styles={{
-                      label: { color: '#fff', fontSize: '0.9rem' },
-                      description: { color: '#888', fontSize: '0.8rem', marginTop: 4 }
-                    }}
-                  />
-                  <Checkbox
-                    label="Enable Peds for Player Outfit Rooms"
-                    description="Allow NPCs where players access their saved outfits"
-                    checked={shopSettings.enablePedsForPlayerOutfitRooms}
-                    onChange={(e) => setShopSettings({ ...shopSettings, enablePedsForPlayerOutfitRooms: e.currentTarget.checked })}
-                    styles={{
-                      label: { color: '#fff', fontSize: '0.9rem' },
-                      description: { color: '#888', fontSize: '0.8rem', marginTop: 4 }
-                    }}
-                  />
-                </Stack>
-              </div>
-
-              <div>
-                <Group position="apart" mb="md">
-                  <Text c="white" fw={600} size="sm">
-                    Shop Configurations
-                  </Text>
-                  <Button 
-                    size="sm"
-                    onClick={() => {
-                      TriggerNuiCallback('saveShopSettings', { settings: shopSettings, configs: shopConfigs }).then(() => {});
-                    }}
-                  >
-                    Save All Shop Settings
-                  </Button>
-                </Group>
-
-                <Stack spacing="md">
-                  {shopConfigs.map((config, idx) => (
-                    <Box key={idx} style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <Text c="white" fw={600} mb="sm" tt="capitalize">
-                        {config.type} Shop
-                      </Text>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <Checkbox
-                          label="Show Blip"
-                          checked={config.blipShow}
-                          onChange={(e) => {
-                            const updated = [...shopConfigs];
-                            updated[idx].blipShow = e.currentTarget.checked;
-                            setShopConfigs(updated);
-                          }}
-                          styles={{ label: { color: '#fff' } }}
-                        />
-                        <NumberInput
-                          label="Cost"
-                          value={config.cost}
-                          onChange={(val) => {
-                            const updated = [...shopConfigs];
-                            updated[idx].cost = val as number;
-                            setShopConfigs(updated);
-                          }}
-                          min={0}
-                        />
-                        <NumberInput
-                          label="Blip Sprite"
-                          value={config.blipSprite}
-                          onChange={(val) => {
-                            const updated = [...shopConfigs];
-                            updated[idx].blipSprite = val as number;
-                            setShopConfigs(updated);
-                          }}
-                          min={0}
-                        />
-                        <NumberInput
-                          label="Blip Color"
-                          value={config.blipColor}
-                          onChange={(val) => {
-                            const updated = [...shopConfigs];
-                            updated[idx].blipColor = val as number;
-                            setShopConfigs(updated);
-                          }}
-                          min={0}
-                        />
-                        <NumberInput
-                          label="Blip Scale"
-                          value={config.blipScale}
-                          onChange={(val) => {
-                            const updated = [...shopConfigs];
-                            updated[idx].blipScale = val as number;
-                            setShopConfigs(updated);
-                          }}
-                          min={0.1}
-                          max={2.0}
-                          step={0.1}
-                          precision={2}
-                        />
-                        <TextInput
-                          label="Blip Name"
-                          value={config.blipName}
-                          onChange={(e) => {
-                            const updated = [...shopConfigs];
-                            updated[idx].blipName = e.target.value;
-                            setShopConfigs(updated);
-                          }}
-                        />
-                      </div>
-                    </Box>
-                  ))}
-                </Stack>
-              </div>
-            </Stack>
+            <ShopsTab
+              shopSettings={shopSettings}
+              setShopSettings={setShopSettings}
+              shopConfigs={shopConfigs}
+              setShopConfigs={setShopConfigs}
+              onSave={() => {}}
+            />
           </Tabs.Panel>
 
           <Tabs.Panel value="tattoos" pt="xl">
-            <Stack spacing="lg">
-              <Group position="apart">
-                <Text c="white" fw={500}>
-                  Tattoo Catalog
-                </Text>
-                <Group>
-                  <Button size="sm" variant="light" onClick={handleAddZone}>
-                    <IconPlus size={14} style={{ marginRight: 8 }} />
-                    Add Zone
-                  </Button>
-                  <Button size="sm" onClick={handleSaveTattoos}>
-                    Save Tattoos
-                  </Button>
-                </Group>
-              </Group>
-
-              {tattoos.length === 0 ? (
-                <Box style={{ padding: '2rem', textAlign: 'center', color: '#888', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
-                  No tattoos configured
-                </Box>
-              ) : (
-                <Accordion
-                  chevronPosition="right"
-                  variant="separated"
-                  styles={{
-                    item: {
-                      backgroundColor: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      marginBottom: '0.5rem',
-                    },
-                  }}
-                >
-                  {tattoos.map((zone, zoneIdx) => {
-                    const tattooCount = (zone.dlcs || []).reduce((acc, dlc) => acc + (dlc.tattoos?.length || 0), 0);
-                    return (
-                      <Accordion.Item key={`zone-${zoneIdx}`} value={`zone-${zoneIdx}`}>
-                        <Accordion.Control>
-                          <Group position="apart" style={{ width: '100%', paddingRight: '1rem' }}>
-                            <Group spacing="sm">
-                              <Text fw={600} c="white">
-                                {zone.label || `Zone ${zoneIdx + 1}`}
-                              </Text>
-                              <Badge size="xs" color="blue" variant="light">
-                                DLCs {zone.dlcs?.length || 0}
-                              </Badge>
-                              <Badge size="xs" color="grape" variant="outline">
-                                Tattoos {tattooCount}
-                              </Badge>
-                            </Group>
-                            <ActionIcon color="red" onClick={(e) => { e.stopPropagation(); handleDeleteZone(zoneIdx); }}>
-                              <IconTrash size={16} />
-                            </ActionIcon>
-                          </Group>
-                        </Accordion.Control>
-                        <Accordion.Panel>
-                          <Stack spacing="sm">
-                            <Group grow>
-                              <TextInput
-                                label="Zone Label"
-                                value={zone.label || ''}
-                                onChange={(e) => handleUpdateZoneLabel(zoneIdx, 'label', e.currentTarget.value)}
-                              />
-                              <TextInput
-                                label="Zone Key"
-                                value={zone.zone || ''}
-                                onChange={(e) => handleUpdateZoneLabel(zoneIdx, 'zone', e.currentTarget.value)}
-                              />
-                            </Group>
-
-                            <Divider />
-
-                            <Stack spacing="sm">
-                              {(zone.dlcs || []).map((dlc, dlcIdx) => (
-                                <Box key={`dlc-${dlcIdx}`} style={{ padding: '0.75rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)' }}>
-                                  <Group position="apart" mb="sm">
-                                    <TextInput
-                                      label={`DLC ${dlcIdx + 1}`}
-                                      value={dlc.label || ''}
-                                      onChange={(e) => handleUpdateDlcLabel(zoneIdx, dlcIdx, e.currentTarget.value)}
-                                      style={{ flex: 1 }}
-                                    />
-                                    <ActionIcon color="red" variant="subtle" onClick={() => handleDeleteDlc(zoneIdx, dlcIdx)}>
-                                      <IconTrash size={16} />
-                                    </ActionIcon>
-                                  </Group>
-
-                                  <Stack spacing="xs">
-                                    {(dlc.tattoos || []).map((tattoo, tattooIdx) => (
-                                      <Box key={`tattoo-${tattooIdx}`} style={{ padding: '0.5rem', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 6, border: '1px solid rgba(255,255,255,0.04)' }}>
-                                        <Group align="flex-end" spacing="sm">
-                                          <TextInput
-                                            label="Label"
-                                            value={tattoo.label || ''}
-                                            onChange={(e) => handleUpdateTattooField(zoneIdx, dlcIdx, tattooIdx, 'label')(e.currentTarget.value)}
-                                            style={{ flex: 1 }}
-                                          />
-                                          <NumberInput
-                                            label="Hash"
-                                            value={tattoo.hash}
-                                            onChange={(val) => handleUpdateTattooField(zoneIdx, dlcIdx, tattooIdx, 'hash')(val as number)}
-                                            style={{ width: 140 }}
-                                          />
-                                          <NumberInput
-                                            label="Opacity"
-                                            value={tattoo.opacity ?? 1}
-                                            min={0}
-                                            max={1}
-                                            step={0.05}
-                                            precision={2}
-                                            onChange={(val) => handleUpdateTattooField(zoneIdx, dlcIdx, tattooIdx, 'opacity')(val as number)}
-                                            style={{ width: 140 }}
-                                          />
-                                          <ActionIcon color="red" variant="light" onClick={() => handleDeleteTattooEntry(zoneIdx, dlcIdx, tattooIdx)}>
-                                            <IconTrash size={16} />
-                                          </ActionIcon>
-                                        </Group>
-                                      </Box>
-                                    ))}
-                                    <Button size="xs" variant="light" onClick={() => handleAddTattooEntry(zoneIdx, dlcIdx)}>
-                                      <IconPlus size={14} style={{ marginRight: 6 }} />
-                                      Add Tattoo
-                                    </Button>
-                                  </Stack>
-                                </Box>
-                              ))}
-                              <Button size="xs" variant="outline" onClick={() => handleAddDlc(zoneIdx)}>
-                                <IconPlus size={14} style={{ marginRight: 6 }} />
-                                Add DLC
-                              </Button>
-                            </Stack>
-                          </Stack>
-                        </Accordion.Panel>
-                      </Accordion.Item>
-                    );
-                  })}
-                </Accordion>
+            <Box style={{ position: 'relative' }}>
+              {isLoadingTab && activeTab === 'tattoos' && (
+                <Overlay blur={2} center>
+                  <Loader color="blue" />
+                </Overlay>
               )}
-            </Stack>
+              <Suspense fallback={
+                <Box style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
+                  <Loader color="blue" size="md" />
+                  <Text c="dimmed" mt="md" size="sm">Loading tattoos...</Text>
+                </Box>
+              }>
+                <TattoosTab
+                  tattoos={tattoos}
+                  setTattoos={setTattoos}
+                  expandedDlc={expandedDlc}
+                  setExpandedDlc={setExpandedDlc}
+                  isLoading={!dataLoadProgress.tattoos}
+                  isReady={true}
+                />
+              </Suspense>
+            </Box>
           </Tabs.Panel>
 
           <Tabs.Panel value="zones" pt="xl">
-            <Stack spacing="lg">
-              <Group position="apart">
-                <Text c="white" fw={500}>
-                  Appearance Zones
-                </Text>
-                <Group>
-                  <Select
-                    value={newZoneType}
-                    onChange={(v) => setNewZoneType((v as Zone['type']) || 'clothing')}
-                    data={[
-                      { value: 'clothing', label: 'Clothing' },
-                      { value: 'barber', label: 'Barber' },
-                      { value: 'tattoo', label: 'Tattoo' },
-                      { value: 'surgeon', label: 'Surgeon' },
-                    ]}
-                    placeholder="Select zone type"
-                  />
-                  <Button onClick={() => {
-                    setEditingZone({
-                      type: newZoneType,
-                      coords: { x: 0, y: 0, z: 0, heading: 0 },
-                      showBlip: true
-                    });
-                    setAddZoneModalOpen(true);
-                  }}>
-                    <IconPlus size={16} style={{ marginRight: 8 }} />
-                    Add Zone
-                  </Button>
-                </Group>
-              </Group>
-
-              {zones.length === 0 ? (
-                <Box style={{ padding: '2rem', textAlign: 'center', color: '#888', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
-                  No zones configured
-                </Box>
-              ) : (
-                <Stack spacing="xs">
-                  {zones.map((zone, idx) => (
-                    <Group
-                      key={zone.id || idx}
-                      position="apart"
-                      style={{
-                        padding: '1rem',
-                        backgroundColor: idx % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)',
-                        borderRadius: 6,
-                        border: '1px solid rgba(255,255,255,0.05)',
-                      }}
-                    >
-                      <div>
-                        <Group spacing="sm" mb={4}>
-                          <Badge size="sm" color="blue" variant="light" tt="capitalize">
-                            {zone.type}
-                          </Badge>
-                          {zone.job && <Badge size="xs" color="green">Job: {zone.job}</Badge>}
-                          {zone.gang && <Badge size="xs" color="purple">Gang: {zone.gang}</Badge>}
-                          {!zone.showBlip && <Badge size="xs" color="gray">Blip Hidden</Badge>}
-                        </Group>
-                        <Text c="white" size="sm">
-                          {zone.name || 'Unnamed Zone'}
-                        </Text>
-                        <Text c="dimmed" size="xs">
-                          Coords: {zone.coords.x.toFixed(2)}, {zone.coords.y.toFixed(2)}, {zone.coords.z.toFixed(2)}
-                          {zone.polyzone && ` • ${zone.polyzone.length} polyzone points`}
-                        </Text>
-                      </div>
-                      <Group>
-                        <ActionIcon 
-                          color="blue"
-                          onClick={() => {
-                            setEditingZone(zone);
-                            setPolyzonePointsInput(zone.polyzone ? JSON.stringify(zone.polyzone) : '');
-                            setAddZoneModalOpen(true);
-                          }}
-                        >
-                          <IconChevronDown size={16} />
-                        </ActionIcon>
-                        <ActionIcon 
-                          color="red"
-                          onClick={() => {
-                            TriggerNuiCallback('deleteZone', zone.id).then(() => {
-                              setZones(zones.filter(z => z.id !== zone.id));
-                            });
-                          }}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Group>
-                    </Group>
-                  ))}
-                </Stack>
-              )}
-            </Stack>
+            <ZonesTab
+              zones={zones}
+              setZones={setZones}
+              newZoneType={newZoneType}
+              setNewZoneType={setNewZoneType}
+              setEditingZone={setEditingZone}
+              setPolyzonePointsInput={setPolyzonePointsInput}
+              setAddZoneModalOpen={setAddZoneModalOpen}
+            />
           </Tabs.Panel>
 
           <Tabs.Panel value="outfits" pt="xl">
-            <Stack spacing="lg">
-              <Group position="apart">
-                <Text c="white" fw={500}>
-                  Job & Gang Outfits
-                </Text>
-                <Button onClick={() => setAddOutfitModalOpen(true)}>
-                  <IconPlus size={16} style={{ marginRight: 8 }} />
-                  Add Outfit
-                </Button>
-              </Group>
-
-              {outfits.length === 0 ? (
-                <Box style={{ padding: '2rem', textAlign: 'center', color: '#888', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
-                  No outfits configured
-                </Box>
-              ) : (
-                <Stack spacing="xs">
-                  {outfits.map((outfit, idx) => (
-                    <Group
-                      key={outfit.id || idx}
-                      position="apart"
-                      style={{
-                        padding: '1rem',
-                        backgroundColor: idx % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)',
-                        borderRadius: 6,
-                        border: '1px solid rgba(255,255,255,0.05)',
-                      }}
-                    >
-                      <div>
-                        <Group spacing="sm" mb={4}>
-                          <Badge size="sm" color={outfit.gender === 'male' ? 'blue' : 'pink'} variant="light">
-                            {outfit.gender}
-                          </Badge>
-                          {outfit.job && <Badge size="xs" color="green">Job: {outfit.job}</Badge>}
-                          {outfit.gang && <Badge size="xs" color="purple">Gang: {outfit.gang}</Badge>}
-                        </Group>
-                        <Text c="white" size="sm" fw={500}>
-                          {outfit.outfitName}
-                        </Text>
-                      </div>
-                      <ActionIcon 
-                        color="red"
-                        onClick={() => {
-                          TriggerNuiCallback('deleteOutfit', outfit.id).then(() => {
-                            setOutfits(outfits.filter(o => o.id !== outfit.id));
-                          });
-                        }}
-                      >
-                        <IconTrash size={16} />
-                      </ActionIcon>
-                    </Group>
-                  ))}
-                </Stack>
-              )}
-            </Stack>
+            <OutfitsTab
+              outfits={outfits}
+              setOutfits={setOutfits}
+              setAddOutfitModalOpen={setAddOutfitModalOpen}
+            />
           </Tabs.Panel>
         </Tabs>
+
+        {isLoadingTab && (
+          <Overlay
+            opacity={0.6}
+            color="#000"
+            zIndex={100}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 8,
+            }}
+          >
+            <Loader color="blue" size="lg" />
+          </Overlay>
+        )}
+        </div>
 
         <Modal
           opened={addModalOpen}
@@ -1741,8 +1169,13 @@ export const AdminMenu: FC = () => {
                 onClick={() => {
                   if (!newOutfit.outfitName || (!newOutfit.job && !newOutfit.gang)) return;
                   
-                  TriggerNuiCallback('addOutfit', newOutfit).then((outfitData) => {
-                    setOutfits([...outfits, { ...newOutfit, ...outfitData, id: Date.now() } as JobOutfit]);
+                  TriggerNuiCallback('addOutfit', newOutfit).then((outfitData: any) => {
+                    const newOutfitItem: JobOutfit = {
+                      ...newOutfit,
+                      ...outfitData,
+                      id: Date.now(),
+                    } as JobOutfit;
+                    setOutfits([...outfits, newOutfitItem]);
                     setAddOutfitModalOpen(false);
                     setNewOutfit({ gender: 'male' });
                   });
@@ -1757,6 +1190,7 @@ export const AdminMenu: FC = () => {
 
         {/* JSON editor removed */}
       </div>
+      )}
     </div>
   );
 };

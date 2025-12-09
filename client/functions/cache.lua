@@ -12,6 +12,26 @@ local Cache = {
     locale = {}
 }
 
+local TattooZones = {
+    { label = "Torso", zone = "ZONE_TORSO", index = 0 },
+    { label = "Head", zone = "ZONE_HEAD", index = 1 },
+    { label = "Left Arm", zone = "ZONE_LEFT_ARM", index = 2 },
+    { label = "Right Arm", zone = "ZONE_RIGHT_ARM", index = 3 },
+    { label = "Left Leg", zone = "ZONE_LEFT_LEG", index = 4 },
+    { label = "Right Leg", zone = "ZONE_RIGHT_LEG", index = 5 },
+    { label = "Unknown", zone = "ZONE_UNKNOWN", index = 6 },
+    { label = "None", zone = "ZONE_NONE", index = 7 },
+}
+
+local function getZoneInfo(zoneValue)
+    for _, z in ipairs(TattooZones) do
+        if z.zone == zoneValue then
+            return z
+        end
+    end
+    return TattooZones[1]
+end
+
 -- Load settings (locked models) from JSON
 local function loadSettings()
     local themeFile = LoadResourceFile('tj_appearance', 'shared/data/theme.json')
@@ -21,9 +41,28 @@ local function loadSettings()
         shape = 'hexagon',
     }
 
-    -- Just load the flat array of restrictions
+    -- Load restrictions and convert to nested format if needed
     local restrictionsFile = LoadResourceFile('tj_appearance', 'shared/data/restrictions.json')
-    Cache.blacklist.restrictions = restrictionsFile and json.decode(restrictionsFile) or {}
+    local loadedRestrictions = restrictionsFile and json.decode(restrictionsFile) or {}
+    
+    -- Check if it's a flat array and convert to nested structure
+    if loadedRestrictions[1] and not loadedRestrictions[1].male then
+        -- It's a flat array, convert to nested structure
+        local nested = {}
+        for _, restriction in ipairs(loadedRestrictions) do
+            local key = string.format('%s_%s', restriction.job or restriction.group or 'none', restriction.gang or 'none')
+            if not nested[key] then
+                nested[key] = { male = {}, female = {} }
+            end
+            if not nested[key][restriction.gender] then
+                nested[key][restriction.gender] = {}
+            end
+            table.insert(nested[key][restriction.gender], restriction)
+        end
+        Cache.blacklist.restrictions = nested
+    else
+        Cache.blacklist.restrictions = loadedRestrictions
+    end
 
     local settingsFile = LoadResourceFile('tj_appearance', 'shared/data/locked_models.json')
     Cache.blacklist.lockedModels = settingsFile and json.decode(settingsFile) or {}
@@ -72,7 +111,83 @@ end
 -- Load tattoos from JSON
 local function loadTattoos()
     local tattoosFile = LoadResourceFile('tj_appearance', 'shared/data/tattoos.json')
-    Cache.tattoos = tattoosFile and json.decode(tattoosFile) or {}
+    local loadedTattoos = tattoosFile and json.decode(tattoosFile) or {}
+    
+    -- Convert simple DLC array (strings or objects) to nested zone structure for UI compatibility
+    if loadedTattoos[1] and loadedTattoos[1].dlc and not loadedTattoos[1].label then
+        local zonesByKey = {}
+
+        for dlcIndex, dlcData in ipairs(loadedTattoos) do
+            for _, tattooValue in ipairs(dlcData.tattoos or {}) do
+                local label = tattooValue
+                local hashMale = tattooValue
+                local hashFemale = tattooValue
+                local zoneValue = dlcData.zone
+
+                if type(tattooValue) == 'table' then
+                    label = tattooValue.label or tattooValue.name or tattooValue.hashMale or tattooValue.hashFemale or ''
+                    hashMale = tattooValue.hashMale or tattooValue.hash or tattooValue.name or label
+                    hashFemale = tattooValue.hashFemale or tattooValue.hash or tattooValue.name or label
+                    zoneValue = tattooValue.zone or zoneValue
+                    if not zoneValue and tattooValue.zoneIndex then
+                        local candidate = TattooZones[(tattooValue.zoneIndex or 0) + 1]
+                        zoneValue = candidate and candidate.zone or zoneValue
+                    end
+                end
+
+                local zoneInfo = getZoneInfo(zoneValue)
+                local zoneKey = zoneInfo.zone
+
+                if not zonesByKey[zoneKey] then
+                    zonesByKey[zoneKey] = {
+                        label = zoneInfo.label,
+                        zone = zoneInfo.zone,
+                        zoneIndex = zoneInfo.index,
+                        dlcs = {},
+                        _dlcLookup = {}
+                    }
+                end
+
+                local zoneEntry = zonesByKey[zoneKey]
+                local dlcEntry = zoneEntry._dlcLookup[dlcData.dlc]
+
+                if not dlcEntry then
+                    dlcEntry = {
+                        label = dlcData.dlc,
+                        dlcIndex = #zoneEntry.dlcs,
+                        tattoos = {}
+                    }
+                    zoneEntry._dlcLookup[dlcData.dlc] = dlcEntry
+                    table.insert(zoneEntry.dlcs, dlcEntry)
+                end
+
+                table.insert(dlcEntry.tattoos, {
+                    label = label,
+                    hash = hashMale,
+                    hashMale = hashMale,
+                    hashFemale = hashFemale,
+                    opacity = 1.0,
+                    dlc = dlcData.dlc,
+                    zone = zoneInfo.index or 0,
+                    price = tattooValue.price or tattooValue.price
+                })
+            end
+        end
+
+        local nested = {}
+        for _, zoneEntry in pairs(zonesByKey) do
+            zoneEntry._dlcLookup = nil
+            table.insert(nested, zoneEntry)
+        end
+
+        table.sort(nested, function(a, b) return (a.zoneIndex or 0) < (b.zoneIndex or 0) end)
+
+        Cache.tattoos = nested
+    else
+        -- Already in nested format or empty
+        Cache.tattoos = loadedTattoos
+    end
+    
     return Cache.tattoos
 end
 
@@ -275,6 +390,19 @@ local CacheAPI = {
     getShopConfigs = function() return Cache.shopConfigs end,
     getLocale = function() return Cache.locale end,
     getBlacklistSettings = function() return Cache.blacklist end,
+    updateCache = function(key, value)
+        if key == 'restrictions' then
+            Cache.blacklist.restrictions = value
+        elseif key == 'theme' then
+            Cache.theme = value
+        elseif key == 'tattoos' then
+            Cache.tattoos = value
+        elseif key == 'zones' then
+            Cache.zones = value
+        elseif key == 'outfits' then
+            Cache.outfits = value
+        end
+    end,
     getRestrictions = function()
         -- Flatten nested restrictions structure for AdminMenu
         local flattened = {}

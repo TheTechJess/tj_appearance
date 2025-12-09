@@ -243,7 +243,26 @@ RegisterNetEvent('tj_appearance:client:updateTheme', function(theme)
 end)
 
 RegisterNetEvent('tj_appearance:client:updateRestrictions', function(restrictions)
-    handleNuiMessage({ action = 'setRestrictions', data = restrictions }, true)
+    -- Update cache with nested structure
+    CacheAPI.updateCache('restrictions', restrictions)
+    
+    -- Flatten for NUI
+    local flattened = {}
+    if restrictions and type(restrictions) == 'table' then
+        for groupKey, genderRestrictions in pairs(restrictions) do
+            if type(genderRestrictions) == 'table' then
+                for gender, items in pairs(genderRestrictions) do
+                    if type(items) == 'table' then
+                        for _, restriction in ipairs(items) do
+                            table.insert(flattened, restriction)
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    handleNuiMessage({ action = 'setRestrictions', data = flattened }, true)
 end)
 
 RegisterNetEvent('tj_appearance:client:updateZones', function(zones)

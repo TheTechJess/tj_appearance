@@ -114,11 +114,13 @@ export type TDrawTextureTotal = {
 }
 
 export type TTattooEntry = {
-    label: string
-    hash: number
-    zone: number
+	label: string
+	hash: number | string
+	hashMale?: string
+	hashFemale?: string
+	zone: number
 	opacity: number
-    dlc?: string
+	dlc?: string
 }
 
 export type TDLCTattoo = {
