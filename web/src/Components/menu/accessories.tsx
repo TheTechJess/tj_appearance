@@ -6,9 +6,11 @@ import { NumberStepper } from '../micro/NumberStepper';
 
 
 export const Props: FC = () => {
-    const { locale, appearance, blacklist, setProp } = useAppearanceStore();
+    const { locale, appearance, blacklist,disableConfig, setProp } = useAppearanceStore();
     const props = appearance?.props;
     const propTotal: TDrawTotal = appearance?.propTotal || {};
+
+    const DisabledProps = disableConfig?.Props || {};
 
 
 
@@ -25,7 +27,7 @@ export const Props: FC = () => {
             }}>
             {props && Object.keys(props).length > 0 ? (
                 <>
-                    {propTotal && propTotal?.hats?.total > 0 ? (
+                    {!DisabledProps.hats && propTotal?.hats?.total > 0 ? (
                         <>
                             <Box>
                                 <Text fw={600} mb="sm" ta="right" tt="uppercase" size="sm" c="white">{locale?.HATS_TITLE || 'Hats'}</Text>
@@ -37,9 +39,9 @@ export const Props: FC = () => {
                                                 <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {propTotal.hats.total}</Text>
                                             </Box>
                                             <NumberStepper
-                                                value={props?.hats.value || 0}
+                                                value={props?.rhand.value || 0}
                                                 min={-1}
-                                                max={propTotal.hats.total}
+                                                max={propTotal.rhand.total - 1}
                                                 blacklist={blacklist?.props?.hats?.values || null}
                                                 onChange={(val: number) => {
                                                     if (props && props.hats) {
@@ -57,9 +59,9 @@ export const Props: FC = () => {
                                                 <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {propTotal.hats.textures}</Text>
                                             </Box>
                                             <NumberStepper
-                                                value={props?.hats.texture || 0}
+                                                value={props?.rhand.texture || 0}
                                                 min={0}
-                                                max={propTotal.hats.textures}
+                                                max={propTotal.rhand.textures - 1}
                                                 blacklist={
                                                     typeof props?.hats.value === 'number'
                                                         ? blacklist?.props?.hats?.textures?.[props.hats.value] || null
@@ -79,7 +81,7 @@ export const Props: FC = () => {
                         </>
                     ) : null}
 
-                    {propTotal && propTotal?.glasses?.total > 0 ? (
+                    {!DisabledProps.glasses && propTotal?.glasses?.total > 0 ? (
                         <>
                             <Divider />
                             <Box>
@@ -94,7 +96,7 @@ export const Props: FC = () => {
                                             <NumberStepper
                                                 value={props?.glasses.value || 0}
                                                 min={-1}
-                                                max={propTotal.glasses.total}
+                                                max={propTotal.glasses.total - 1}
                                                 blacklist={blacklist?.props?.glasses?.values || null}
                                                 onChange={(val: number) => {
                                                     if (props && props.glasses) {
@@ -114,7 +116,7 @@ export const Props: FC = () => {
                                             <NumberStepper
                                                 value={props?.glasses.texture || 0}
                                                 min={0}
-                                                max={propTotal.glasses.textures}
+                                                max={propTotal.glasses.textures - 1}
                                                 blacklist={
                                                     typeof props?.glasses.value === 'number'
                                                         ? blacklist?.props?.glasses?.textures?.[props.glasses.value] || null
@@ -134,7 +136,7 @@ export const Props: FC = () => {
                         </>
                     ) : null}
 
-                    {propTotal && propTotal?.earrings?.total > 0 ? (
+                    {!DisabledProps.earrings && propTotal?.earrings?.total > 0 ? (
                         <>
                             <Divider />
                             <Box>
@@ -149,7 +151,7 @@ export const Props: FC = () => {
                                             <NumberStepper
                                                 value={props?.earrings.value || 0}
                                                 min={-1}
-                                                max={propTotal.earrings.total}
+                                                max={propTotal.earrings.total - 1}
                                                 blacklist={blacklist?.props?.earrings?.values || null}
                                                 onChange={(val: number) => {
                                                     if (props && props.earrings) {
@@ -169,7 +171,7 @@ export const Props: FC = () => {
                                             <NumberStepper
                                                 value={props?.earrings.texture || 0}
                                                 min={0}
-                                                max={propTotal.earrings.textures}
+                                                max={propTotal.earrings.textures - 1}
                                                 blacklist={
                                                     typeof props?.earrings.value === 'number'
                                                         ? blacklist?.props?.earrings?.textures?.[props.earrings.value] || null
@@ -189,7 +191,7 @@ export const Props: FC = () => {
                         </>
                     ) : null}
 
-                    {propTotal && propTotal?.watches?.total > 0 ? (
+                    {!DisabledProps.watches && propTotal?.watches?.total > 0 ? (
                         <>
                             <Divider />
                             <Box>
@@ -204,7 +206,7 @@ export const Props: FC = () => {
                                             <NumberStepper
                                                 value={props?.watches.value || 0}
                                                 min={-1}
-                                                max={propTotal.watches.total}
+                                                max={propTotal.watches.total - 1}
                                                 blacklist={blacklist?.props?.watches?.values || null}
                                                 onChange={(val: number) => {
                                                     if (props && props.watches) {
@@ -224,7 +226,7 @@ export const Props: FC = () => {
                                             <NumberStepper
                                                 value={props?.watches.texture || 0}
                                                 min={0}
-                                                max={propTotal.watches.textures}
+                                                max={propTotal.watches.textures - 1}
                                                 blacklist={
                                                     typeof props?.watches.value === 'number'
                                                         ? blacklist?.props?.watches?.textures?.[props.watches.value] || null
@@ -244,7 +246,7 @@ export const Props: FC = () => {
                         </>
                     ) : null}
 
-                    {propTotal && propTotal?.bracelets?.total > 0 ? (
+                    {!DisabledProps.bracelets && propTotal?.bracelets?.total > 0 ? (
                         <>
                             <Divider />
                             <Box>
@@ -259,7 +261,7 @@ export const Props: FC = () => {
                                             <NumberStepper
                                                 value={props?.bracelets.value || 0}
                                                 min={-1}
-                                                max={propTotal.bracelets.total}
+                                                max={propTotal.bracelets.total - 1}
                                                 blacklist={blacklist?.props?.bracelets?.values || null}
                                                 onChange={(val: number) => {
                                                     if (props && props.bracelets) {
@@ -279,7 +281,7 @@ export const Props: FC = () => {
                                             <NumberStepper
                                                 value={props?.bracelets.texture || 0}
                                                 min={0}
-                                                max={propTotal.bracelets.textures}
+                                                max={propTotal.bracelets.textures - 1}
                                                 blacklist={
                                                     typeof props?.bracelets.value === 'number'
                                                         ? blacklist?.props?.bracelets?.textures?.[props.bracelets.value] || null

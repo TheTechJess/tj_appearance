@@ -4,7 +4,6 @@ if GetResourceState('es_extended') ~= 'started' then
 end
 
 local ESX = exports['es_extended']:getSharedObject()
-local CacheAPI = require('client.functions.cache')
 
 Framework = {}
 

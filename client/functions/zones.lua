@@ -1,4 +1,3 @@
-local CacheAPI = require('client.functions.cache')
 local handleNuiMessage = require('modules.nui')
 
 local activeZones = {}
@@ -22,172 +21,6 @@ local function getBlipDefaults(zoneType)
         return Config.Blips[zoneType]
     end
     return {}
-end
-
--- Helper function to check if player has job/gang access
-local function hasAccess(zone)
-    if not zone.job and not zone.gang then
-        return true -- No restrictions
-    end
-
-    local playerData = Framework and Framework.GetPlayerData() or nil
-    if not playerData then return false end
-
-    if zone.job and playerData.job and playerData.job.name == zone.job then
-        return true
-    end
-
-    if zone.gang and playerData.gang and playerData.gang.name == zone.gang then
-        return true
-    end
-
-    return false
-end
-
--- Get the appearance menu type based on zone type
-local function getMenuType(zoneType)
-    local menuTypes = {
-        clothing = 'clothing',
-        barber = 'barber',
-        tattoo = 'tattoo',
-        surgeon = 'surgeon',
-        outfits = 'outfits'
-    }
-    return menuTypes[zoneType] or 'clothing'
-end
-
--- Format zone label with menu type and price
-local function getZoneLabel(zoneType)
-    local menuType = getMenuType(zoneType)
-    local typeNames = {
-        clothing = 'Clothing Store',
-        barber = 'Barber Shop',
-        tattoo = 'Tattoo Parlor',
-        surgeon = 'Surgeon',
-        outfits = 'Outfits'
-    }
-    
-    local typeName = typeNames[menuType] or 'Appearance'
-    local price = (Config.Prices and Config.Prices[menuType]) or 0
-    
-    if price > 0 then
-        return string.format('Open %s ($%d)', typeName, price)
-    else
-        return string.format('Open %s', typeName)
-    end
-end
-
-local function tableContains(tbl, value)
-    for _, v in ipairs(tbl) do
-        if v == value then
-            return true
-        end
-    end
-    return false
-end
-
-
--- Open appearance menu for zone
-local function openAppearanceMenu(zone)
-    if not hasAccess(zone) then
-        lib.notify({
-            title = 'Access Denied',
-            description = 'You do not have access to this location',
-            type = 'error'
-        })
-        return
-    end
-
-    local menuType = getMenuType(zone.type)
-    _CurrentMenuType = menuType  -- Set global menu type for save callback
-
-    -- Get player's current model to determine gender
-    local model = GetEntityModel(cache.ped)
-    local isMale = model == GetHashKey("mp_m_freemode_01")
-    local gender = isMale and 'male' or 'female'
-
-    -- Get player-specific restrictions from cache
-    local restrictions = CacheAPI.getPlayerRestrictions()
-    local blacklist = { models = {}, drawables = {}, props = {} }
-
-    if restrictions then
-        local genderData = restrictions[gender]
-        if genderData then
-            blacklist = genderData
-        end
-    end
-
-    local models = CacheAPI.getModels()
-    local tattoos = CacheAPI.getTattoos()
-
-
-      -- Get locked models from cache
-  local settings = CacheAPI.getSettings()
-  local lockedModels = (settings and settings.lockedModels) or {}
-
-  -- Get player data from framework
-  local playerData = Framework and Framework.GetPlayerData() or nil
-  local jobData = { name = "", isBoss = false }
-
-  if playerData and playerData.job then
-    jobData = {
-      name = playerData.job.name,
-      isBoss = playerData.job.isBoss
-    }
-  end
-
-    if Config.Tabs[menuType] and tableContains(Config.Tabs[menuType], 'outfits') then
-        lib.callback('tj_appearance:getOutfits', false, function(outfits)
-            handleNuiMessage({
-                action = 'data',
-                data = {
-                    tabs = Config.Tabs[menuType],
-                    appearance = GetPlayerAppearance(),
-                    models = models,
-                    blacklist = blacklist,
-                    tattoos = tattoos,
-                    outfits = outfits or {},
-                    allowExit = true,
-                    job = jobData
-                }
-            }, true)
-
-            -- Send locked models separately
-            handleNuiMessage({
-                action = 'setLockedModels',
-                data = lockedModels
-            }, true)
-
-            Wait(100)
-            ToggleCam(true)
-            handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
-        end)
-    else
-        -- do other stuff
-
-                    handleNuiMessage({
-                action = 'data',
-                data = {
-                    tabs = Config.Tabs[menuType],
-                    appearance = GetPlayerAppearance(),
-                    models = models,
-                    blacklist = blacklist,
-                    tattoos = tattoos,
-                    allowExit = true,
-                    job = jobData
-                }
-            }, true)
-
-            -- Send locked models separately
-            handleNuiMessage({
-                action = 'setLockedModels',
-                data = lockedModels
-            }, true)
-
-            Wait(100)
-            ToggleCam(true)
-            handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
-    end
 end
 
 -- Create a ped at zone location
@@ -219,7 +52,7 @@ local function createZonePed(zone)
                 icon = 'fa-solid fa-shirt',
                 label = getZoneLabel(zone.type),
                 onSelect = function()
-                    openAppearanceMenu(zone)
+                    OpenAppearanceMenu(zone)
                 end,
                 canInteract = function()
                     return hasAccess(zone)
@@ -265,7 +98,7 @@ local function createPolyZone(zone)
             if IsControlJustPressed(0, 38) then -- E key
                 if hasAccess(zone) then
                     lib.hideTextUI()
-                    openAppearanceMenu(zone)
+                    OpenAppearanceMenu(zone)
                 end
             end
         end

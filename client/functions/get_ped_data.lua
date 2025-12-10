@@ -99,6 +99,8 @@ function GetPedComponents(ped)
             textures = textureCount
         }
 
+        print('Component:', name, 'Drawable Count:', drawableCount, 'Texture Count:', textureCount)
+
         -- drawables
         components[name] = {
             id = name,

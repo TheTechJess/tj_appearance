@@ -1,12 +1,12 @@
 import { FC } from 'react';
-import { Box, Button, Stack, Text, Grid, Divider } from '@mantine/core';
+import { Box, Stack, Text, Grid, Divider } from '@mantine/core';
 import { useAppearanceStore } from '../../Providers/AppearanceStoreProvider';
 import type { THeadStructure, TDrawTotal } from '../../types/appearance';
 import { NumberStepper } from '../micro/NumberStepper';
 
 
 export const ClothesMenu: FC = () => {
-    const { appearance, blacklist, locale, setDrawable } = useAppearanceStore();
+    const { appearance, blacklist, locale,disableConfig, setDrawable } = useAppearanceStore();
 
     const drawTotal: TDrawTotal | null = appearance?.drawTotal || null;
     const drawables: THeadStructure = appearance?.drawables || {};
@@ -22,7 +22,9 @@ export const ClothesMenu: FC = () => {
                 overflowX: "hidden",
                 paddingBottom: "2rem",  // ⬅️ Add bottom padding here
             }}>
-            {drawTotal && drawTotal?.masks?.total > 0 ? (
+
+                
+            {!disableConfig?.Components?.masks === true && drawTotal && drawTotal?.masks?.total > 0 ? (
                 <>
                     <Box>
                         <Text fw={600} mb="sm" ta="right" tt="uppercase" size="sm" c="white">{locale?.MASK_TITLE || 'Mask'}</Text>
@@ -36,7 +38,7 @@ export const ClothesMenu: FC = () => {
                                     <NumberStepper
                                         value={drawables.masks.value || 0}
                                         min={0}
-                                        max={drawTotal.masks.total}
+                                        max={drawTotal.masks.total - 1}
                                         blacklist={blacklist?.drawables?.masks?.values || null}
                                         onChange={(val: number) => {
                                             drawables.masks.texture = 0;
@@ -54,7 +56,7 @@ export const ClothesMenu: FC = () => {
                                     <NumberStepper
                                         value={drawables.masks.texture || 0}
                                         min={0}
-                                        max={drawTotal.masks.textures}
+                                        max={drawTotal.masks.textures - 1}
                                         blacklist={blacklist?.drawables?.masks?.textures?.[drawables.masks.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.masks, val, true);
@@ -67,7 +69,7 @@ export const ClothesMenu: FC = () => {
                 </>
             ) : null}
 
-            {drawTotal && drawTotal?.jackets?.total > 0 ? (
+            {!disableConfig?.Components?.jackets === true && drawTotal && drawTotal?.jackets?.total > 0 ? (
                 <>
                     <Divider />
                     <Box>
@@ -82,7 +84,7 @@ export const ClothesMenu: FC = () => {
                                     <NumberStepper
                                         value={drawables.jackets.value || 0}
                                         min={0}
-                                        max={drawTotal.jackets.total}
+                                        max={drawTotal.jackets.total - 1}
                                         blacklist={blacklist?.drawables?.jackets?.values || null}
                                         onChange={(val: number) => {
                                             drawables.jackets.texture = 0;
@@ -100,7 +102,7 @@ export const ClothesMenu: FC = () => {
                                     <NumberStepper
                                         value={drawables.jackets.texture || 0}
                                         min={0}
-                                        max={drawTotal.jackets.textures}
+                                        max={drawTotal.jackets.textures - 1}
                                         blacklist={blacklist?.drawables?.jackets?.textures?.[drawables.jackets.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.jackets, val, true);
@@ -113,7 +115,7 @@ export const ClothesMenu: FC = () => {
                 </>
             ) : null}
 
-            {drawTotal && drawTotal?.shirts?.total > 0 ? (
+            {!disableConfig?.Components?.shirts === true && drawTotal && drawTotal?.shirts?.total > 0 ? (
                 <>
                     <Divider />
                     <Box>
@@ -123,12 +125,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.shirts.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.shirts.value || 0}
                                         min={0}
-                                        max={drawTotal.shirts.total}
+                                        max={drawTotal.shirts.total - 1}
                                         blacklist={blacklist?.drawables?.shirts?.values || null}
                                         onChange={(val: number) => {
                                             drawables.shirts.texture = 0;
@@ -141,12 +143,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.shirts.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.shirts.texture || 0}
                                         min={0}
-                                        max={drawTotal.shirts.textures}
+                                        max={drawTotal.shirts.textures - 1}
                                         blacklist={blacklist?.drawables?.shirts?.textures?.[drawables.shirts.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.shirts, val, true);
@@ -159,7 +161,7 @@ export const ClothesMenu: FC = () => {
                 </>
             ) : null}
 
-            {drawTotal && drawTotal?.torsos?.total > 0 ? (
+            {!disableConfig?.Components?.torsos === true && drawTotal && drawTotal?.torsos?.total > 0 ? (
                 <>
                     <Divider />
                     <Box>
@@ -169,12 +171,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.torsos.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.torsos.value || 0}
                                         min={0}
-                                        max={drawTotal.torsos.total}
+                                        max={drawTotal.torsos.total - 1}
                                         blacklist={blacklist?.drawables?.torsos?.values || null}
                                         onChange={(val: number) => {
                                             drawables.torsos.texture = 0;
@@ -187,12 +189,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.torsos.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.torsos.texture || 0}
                                         min={0}
-                                        max={drawTotal.torsos.textures}
+                                        max={drawTotal.torsos.textures - 1}
                                         blacklist={blacklist?.drawables?.torsos?.textures?.[drawables.torsos.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.torsos, val, true);
@@ -205,7 +207,7 @@ export const ClothesMenu: FC = () => {
                 </>
             ) : null}
 
-            {drawTotal && drawTotal?.vest?.total > 0 ? (
+            {!disableConfig?.Components?.vest === true && drawTotal && drawTotal?.vest?.total > 0 ? (
                 <>
                     <Divider />
                     <Box>
@@ -215,12 +217,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.vest.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.vest.value || 0}
                                         min={0}
-                                        max={drawTotal.vest.total}
+                                        max={drawTotal.vest.total - 1}
                                         blacklist={blacklist?.drawables?.vest?.values || null}
                                         onChange={(val: number) => {
                                             drawables.vest.texture = 0;
@@ -233,12 +235,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.vest.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.vest.texture || 0}
                                         min={0}
-                                        max={drawTotal.vest.textures}
+                                        max={drawTotal.vest.textures - 1}
                                         blacklist={blacklist?.drawables?.vest?.textures?.[drawables.vest.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.vest, val, true);
@@ -251,7 +253,7 @@ export const ClothesMenu: FC = () => {
                 </>
             ) : null}
 
-            {drawTotal && drawTotal?.legs?.total > 0 ? (
+            {!disableConfig?.Components?.legs === true && drawTotal && drawTotal?.legs?.total > 0 ? (
                 <>
                     <Divider />
                     <Box>
@@ -261,12 +263,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.legs.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.legs.value || 0}
                                         min={0}
-                                        max={drawTotal.legs.total}
+                                        max={drawTotal.legs.total - 1}
                                         blacklist={blacklist?.drawables?.legs?.values || null}
                                         onChange={(val: number) => {
                                             drawables.legs.texture = 0;
@@ -279,12 +281,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.legs.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.legs.texture || 0}
                                         min={0}
-                                        max={drawTotal.legs.textures}
+                                        max={drawTotal.legs.textures - 1}
                                         blacklist={blacklist?.drawables?.legs?.textures?.[drawables.legs.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.legs, val, true);
@@ -297,7 +299,7 @@ export const ClothesMenu: FC = () => {
                 </>
             ) : null}
 
-            {drawTotal && drawTotal?.shoes?.total > 0 ? (
+            {!disableConfig?.Components?.shoes === true && drawTotal && drawTotal?.shoes?.total > 0 ? (
                 <>
                     <Divider />
                     <Box>
@@ -307,12 +309,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.shoes.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.shoes.value || 0}
                                         min={0}
-                                        max={drawTotal.shoes.total}
+                                        max={drawTotal.shoes.total - 1}
                                         blacklist={blacklist?.drawables?.shoes?.values || null}
                                         onChange={(val: number) => {
                                             drawables.shoes.texture = 0;
@@ -325,12 +327,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.shoes.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.shoes.texture || 0}
                                         min={0}
-                                        max={drawTotal.shoes.textures}
+                                        max={drawTotal.shoes.textures - 1}
                                         blacklist={blacklist?.drawables?.shoes?.textures?.[drawables.shoes.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.shoes, val, true);
@@ -343,7 +345,7 @@ export const ClothesMenu: FC = () => {
                 </>
             ) : null}
 
-            {drawTotal && drawTotal?.bags?.total > 0 ? (
+            {!disableConfig?.Components?.bags === true && drawTotal && drawTotal?.bags?.total > 0 ? (
                 <>
                     <Divider />
                     <Box>
@@ -353,12 +355,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.bags.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.bags.value || 0}
                                         min={0}
-                                        max={drawTotal.bags.total}
+                                        max={drawTotal.bags.total - 1}
                                         blacklist={blacklist?.drawables?.bags?.values || null}
                                         onChange={(val: number) => {
                                             drawables.bags.texture = 0;
@@ -371,12 +373,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.bags.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.bags.texture || 0}
                                         min={0}
-                                        max={drawTotal.bags.textures}
+                                        max={drawTotal.bags.textures - 1}
                                         blacklist={blacklist?.drawables?.bags?.textures?.[drawables.bags.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.bags, val, true);
@@ -389,7 +391,7 @@ export const ClothesMenu: FC = () => {
                 </>
             ) : null}
 
-            {drawTotal && drawTotal?.neck?.total > 0 ? (
+            {!disableConfig?.Components?.neck === true && drawTotal && drawTotal?.neck?.total > 0 ? (
                 <>
                     <Divider />
                     <Box>
@@ -399,12 +401,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.neck.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.neck.value || 0}
                                         min={0}
-                                        max={drawTotal.neck.total}
+                                        max={drawTotal.neck.total - 1}
                                         blacklist={blacklist?.drawables?.neck?.values || null}
                                         onChange={(val: number) => {
                                             drawables.neck.texture = 0;
@@ -417,12 +419,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.neck.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.neck.texture || 0}
                                         min={0}
-                                        max={drawTotal.neck.textures}
+                                        max={drawTotal.neck.textures - 1}
                                         blacklist={blacklist?.drawables?.neck?.textures?.[drawables.neck.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.neck, val, true);
@@ -435,7 +437,7 @@ export const ClothesMenu: FC = () => {
                 </>
             ) : null}
 
-            {drawTotal && drawTotal?.decals?.total > 0 ? (
+            {!disableConfig?.Components?.decals === true && drawTotal && drawTotal?.decals?.total > 0 ? (
                 <>
                     <Divider />
                     <Box>
@@ -445,12 +447,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Face'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 46</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.decals.total}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.decals.value || 0}
                                         min={0}
-                                        max={drawTotal.decals.total}
+                                        max={drawTotal.decals.total - 1}
                                         blacklist={blacklist?.drawables?.decals?.values || null}
                                         onChange={(val: number) => {
                                             drawables.decals.texture = 0;
@@ -463,12 +465,12 @@ export const ClothesMenu: FC = () => {
                                 <Box>
                                     <Box style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                                         <Text size="sm" c="dimmed">{locale?.DESIGN_SUBTITLE || 'Skin'}</Text>
-                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: 45</Text>
+                                        <Text size="sm" c="dimmed">{locale?.TOTAL_SUBTITLE || 'Total'}: {drawTotal.decals.textures}</Text>
                                     </Box>
                                     <NumberStepper
                                         value={drawables.decals.texture || 0}
                                         min={0}
-                                        max={drawTotal.decals.textures}
+                                        max={drawTotal.decals.textures - 1}
                                         blacklist={blacklist?.drawables?.decals?.textures?.[drawables.decals.value] || null}
                                         onChange={(val: number) => {
                                             setDrawable(drawables.decals, val, true);

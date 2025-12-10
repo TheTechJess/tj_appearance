@@ -4,7 +4,6 @@ if GetResourceState('qb-core') ~= 'started' then
 end
 
 local QBCore = exports['qb-core']:GetCoreObject()
-local CacheAPI = require('client.functions.cache')
 
 Framework = {}
 

@@ -28,7 +28,7 @@ Config.Camera = {
 }
 
 Config.Tattoo = {
-    UseRcore = false,       -- Set to true to use rcore tattoo system
+    UseRcore = false,       -- Set to true to use rcore tattoo system (when enabled, tattoo zones are skipped)
     ChargeEachTattoo = true -- Set to true to charge for each tattoo separately
 }
 
@@ -44,6 +44,35 @@ Config.ReloadSkin = {
         car = true
     }
 
+}
+
+
+Config.Disable = {
+    Components = {
+        face = false, -- Disable face section completely
+        masks = true,
+        hair = false,
+        torsos = false,
+        legs = false,
+        bags = false,
+        shoes = false,
+        neck = false,
+        shirts = false,
+        vest = false,
+        decals = false,
+        jackets = false
+    },
+    Props = {
+        hats = false,
+        glasses = false,
+        earrings = false,
+        mouth = false,
+        lhand = false,
+        rhand = false,
+        watches = false,
+        bracelets = false
+    },
+    Tattoos = false -- Disable tattoo section completely
 }
 
 Config.EnablePedsForShops = true -- Enable peds at shop locations
@@ -84,6 +113,7 @@ Config.Blips = {
 
 
 Config.Tabs = {
+    all = {"heritage", 'face', 'hair', 'clothes', 'accessories', 'makeup', 'tattoos', 'outfits'},
     clothing = {'clothes', 'accessories', 'outfits'},
     barber = {'hair', 'makeup'},
     tattoo = {'tattoos'},

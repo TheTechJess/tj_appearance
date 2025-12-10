@@ -10,7 +10,8 @@ local Cache = {
     shopConfigs = {},
     blacklist = {},
     locale = {},
-    appearanceSettings = {}
+    appearanceSettings = {},
+    disable = {}
 }
 
 local TattooZones = {
@@ -67,6 +68,11 @@ local function loadSettings()
 
     local settingsFile = LoadResourceFile('tj_appearance', 'shared/data/locked_models.json')
     Cache.blacklist.lockedModels = settingsFile and json.decode(settingsFile) or {}
+
+    -- Load disable config from Config
+    if Config and Config.Disable then
+        Cache.disable = Config.Disable
+    end
 
     return Cache
 end
@@ -373,7 +379,7 @@ local function initializeCache()
     loadAppearanceSettings()
 
     -- Wait a bit for NUI to be ready
-    Wait(100)
+    Wait(1000)
 
     handleNuiMessage({ action = 'setRestrictions', data = Cache.blacklist.restrictions or {} }, false)
     handleNuiMessage({ action = 'setModels', data = Cache.models }, false)
@@ -384,12 +390,9 @@ local function initializeCache()
     handleNuiMessage({ action = 'setOutfits', data = Cache.outfits }, false)
     handleNuiMessage({ action = 'setTattoos', data = Cache.tattoos }, false)
     handleNuiMessage({ action = 'setAppearanceSettings', data = Cache.appearanceSettings }, false)
-    
-    -- Send theme and locale with a small delay to ensure NUI handlers are ready
-    SetTimeout(200, function()
-        handleNuiMessage({ action = 'setThemeConfig', data = Cache.theme }, false)
-        handleNuiMessage({ action = 'setLocale', data = Cache.locale }, false)
-    end)
+    handleNuiMessage({ action = 'setDisableConfig', data = Cache.disable }, false)
+    handleNuiMessage({ action = 'setThemeConfig', data = Cache.theme }, false)
+    handleNuiMessage({ action = 'setLocale', data = Cache.locale }, false)
     
 end
 
@@ -410,7 +413,7 @@ RegisterNetEvent('tj_appearance:client:updateAppearanceSettings', function(setti
 end)
 
 -- Public API to get cache data
-local CacheAPI = {
+CacheAPI = {
     init = initializeCache,
     getTheme = function() return Cache.theme end,
     getSettings = function() return Cache.settings end,
@@ -422,6 +425,7 @@ local CacheAPI = {
     getShopConfigs = function() return Cache.shopConfigs end,
     getLocale = function() return Cache.locale end,
     getBlacklistSettings = function() return Cache.blacklist end,
+    getDisableConfig = function() return Cache.disable end,
     getAppearanceSettings = function() return Cache.appearanceSettings end,
     updateCache = function(key, value)
         if key == 'restrictions' then
@@ -461,5 +465,3 @@ local CacheAPI = {
     getModelHashName = getmodelhashname,
 
 }
-
-return CacheAPI

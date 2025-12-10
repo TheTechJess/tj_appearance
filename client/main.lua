@@ -1,5 +1,4 @@
 local handleNuiMessage = require('modules.nui')
-local CacheAPI = require('client.functions.cache')
 
 _CurrentTattoos = _CurrentTattoos or {}
 _CurrentMenuType = 'clothing' -- Track current menu type for pricing
@@ -10,27 +9,41 @@ CreateThread(function()
 end)
 
 -- Function to open appearance menu for a player
-local function OpenAppearanceMenu()
-  -- Get player's current model to determine gender
-  local model = GetEntityModel(cache.ped)
-  local isMale = model == GetHashKey("mp_m_freemode_01")
-  local gender = isMale and 'male' or 'female'
-
-  -- Get player-specific restrictions from cache
-  local restrictions = CacheAPI.getPlayerRestrictions()
-  local blacklist = { models = {}, drawables = {}, props = {} }
-
-  if restrictions then
-    local genderData = restrictions[gender]
-    if genderData then
-      blacklist = genderData
+-- Open appearance menu for zone
+function OpenAppearanceMenu(zone)
+    if not hasAccess(zone) then
+        lib.notify({
+            title = 'Access Denied',
+            description = 'You do not have access to this location',
+            type = 'error'
+        })
+        return
     end
-  end
 
-  local models = CacheAPI.getModels()
-  local tattoos = CacheAPI.getTattoos()
+    local menuType = zone?.type or 'clothing'
+    _CurrentMenuType = menuType  -- Set global menu type for save callback
 
-  -- Get locked models from cache
+    -- Get player's current model to determine gender
+    local model = GetEntityModel(cache.ped)
+    local isMale = model == GetHashKey("mp_m_freemode_01")
+    local gender = isMale and 'male' or 'female'
+
+    -- Get player-specific restrictions from cache
+    local restrictions = CacheAPI.getPlayerRestrictions()
+    local blacklist = { models = {}, drawables = {}, props = {} }
+
+    if restrictions then
+        local genderData = restrictions[gender]
+        if genderData then
+            blacklist = genderData
+        end
+    end
+
+    local models = CacheAPI.getModels()
+    local tattoos = CacheAPI.getTattoos()
+
+
+      -- Get locked models from cache
   local settings = CacheAPI.getSettings()
   local lockedModels = (settings and settings.lockedModels) or {}
 
@@ -45,37 +58,64 @@ local function OpenAppearanceMenu()
     }
   end
 
-  -- Fetch player's outfits from database
-  lib.callback('tj_appearance:getOutfits', false, function(outfits)
-    handleNuiMessage({
-      action = 'data',
-      data = {
-        tabs = { "heritage", 'face', 'hair', 'clothes', 'accessories', 'makeup', 'tattoos', 'outfits' },
-        appearance = GetPlayerAppearance(),
-        models = models,
-        blacklist = blacklist,
-        tattoos = tattoos,
-        outfits = outfits or {},
-        allowExit = true,
-        job = jobData
-      }
-    }, true)
 
-    -- Send locked models separately
-    handleNuiMessage({
-      action = 'setLockedModels',
-      data = lockedModels
-    }, true)
+    if Config.Tabs[menuType] and TableContains(Config.Tabs[menuType], 'outfits') then
+        lib.callback('tj_appearance:getOutfits', false, function(outfits)
+            handleNuiMessage({
+                action = 'data',
+                data = {
+                    tabs = Config.Tabs[menuType],
+                    appearance = GetPlayerAppearance(),
+                    models = models,
+                    blacklist = blacklist,
+                    tattoos = tattoos,
+                    outfits = outfits or {},
+                    allowExit = true,
+                    job = jobData
+                }
+            }, true)
 
-    Wait(100)
-    ToggleCam(true)
-    handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
-  end)
+            -- Send locked models separately
+            handleNuiMessage({
+                action = 'setLockedModels',
+                data = lockedModels
+            }, true)
+
+            Wait(100)
+            ToggleCam(true)
+            handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
+        end)
+    else
+        -- do other stuff
+
+                    handleNuiMessage({
+                action = 'data',
+                data = {
+                    tabs = Config.Tabs[menuType],
+                    appearance = GetPlayerAppearance(),
+                    models = models,
+                    blacklist = blacklist,
+                    tattoos = tattoos,
+                    allowExit = true,
+                    job = jobData
+                }
+            }, true)
+
+            -- Send locked models separately
+            handleNuiMessage({
+                action = 'setLockedModels',
+                data = lockedModels
+            }, true)
+
+            Wait(100)
+            ToggleCam(true)
+            handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
+    end
 end
 
 -- Listen for server event to open appearance menu
 RegisterNetEvent('tj_appearance:client:openAppearanceMenu', function()
-  OpenAppearanceMenu()
+  OpenAppearanceMenu({type = 'all'})
 end)
 
 RegisterNuiCallback('save', function(data, cb)
@@ -509,10 +549,10 @@ RegisterNuiCallback('getAppearanceData', function(_, cb)
   local components = GetPedComponents(ped)
   local props = GetPedProps(ped)
   
-  -- Filter out face, hair, and neck from components
+  -- Filter out face, and hair from components
   local filteredComponents = {}
   for key, value in pairs(components) do
-    if key ~= 'face' and key ~= 'hair' and key ~= 'neck' then
+    if key ~= 'face' and key ~= 'hair' then
       filteredComponents[key] = value
     end
   end

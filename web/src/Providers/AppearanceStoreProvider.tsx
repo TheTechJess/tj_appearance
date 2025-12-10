@@ -32,6 +32,7 @@ interface AppearanceStoreContextType {
   isValid: Blacklist;
   allowExit: boolean;
   blacklist: TBlacklist | undefined;
+  disableConfig: any;
   jobData: TJOBDATA;
   originalAppearance: TAppearance | undefined;
   models: TModel[] | undefined;
@@ -48,6 +49,7 @@ interface AppearanceStoreContextType {
   setIsValid: (isValid: Blacklist) => void;
   setAllowExit: (allowExit: boolean) => void;
   setBlacklist: (blacklist: TBlacklist | undefined) => void;
+  setDisableConfig: (config: any) => void;
   setJobData: (jobData: TJOBDATA) => void;
   setOriginalAppearance: (appearance: TAppearance | undefined) => void;
   setModels: (models: TModel[] | undefined) => void;
@@ -101,6 +103,7 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
   const [allowExit, setAllowExit] = useState<boolean>(true);
   const [blacklist, setBlacklist] = useState<TBlacklist | undefined>(undefined);
   const [lockedModels, setLockedModels] = useState<string[]>([]);
+  const [disableConfig, setDisableConfig] = useState<any>(undefined);
   const [jobData, setJobData] = useState<TJOBDATA>({ name: '', isBoss: false });
   const [originalAppearance, setOriginalAppearance] = useState<TAppearance | undefined>(undefined);
   const [models, setModels] = useState<TModel[] | undefined>(undefined);
@@ -136,6 +139,10 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
 
   HandleNuiMessage<string[]>('setLockedModels', (data) => {
     setLockedModels(data || []);
+  });
+
+  HandleNuiMessage<any>('setDisableConfig', (data) => {
+    setDisableConfig(data || {});
   });
 
   HandleNuiMessage<TZoneTattoo[]>('setTattoos', (data) => {
@@ -418,6 +425,7 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     isValid,
     allowExit,
     blacklist,
+    disableConfig,
     jobData,
     originalAppearance,
     models,
@@ -432,6 +440,7 @@ export const AppearanceStoreProvider: FC<{ children: ReactNode }> = ({ children 
     setIsValid,
     setAllowExit,
     setBlacklist,
+    setDisableConfig,
     setJobData,
     setOriginalAppearance,
     setModels,

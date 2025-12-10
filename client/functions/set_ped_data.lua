@@ -1,4 +1,3 @@
-local CacheAPI = require('client.functions.cache')
 _CurrentTattoos = _CurrentTattoos or {}
 
 function SetHeadOverlay(ped, HeadBlendData)
@@ -41,35 +40,59 @@ end
 exports('SetPedHeadBlend', SetPedHeadBlend);
 
 function SetDrawable(ped, Drawdata)
-    if not Drawdata then return end
+    if not Drawdata then 
+        print('[DEBUG SetDrawable] Drawdata is nil')
+        return 
+    end
 
+    print(string.format('[DEBUG SetDrawable] index=%s, value=%s, texture=%s', Drawdata.index, Drawdata.value, Drawdata.texture))
+    
+    -- Handle -1 and -2 (no drawable) - just skip, don't set anything
+    if Drawdata.value < 0  then
+        print(string.format('[DEBUG SetDrawable] Skipping index %s (value=%s, no drawable)', Drawdata.index, Drawdata.value))
+        Drawdata.value = 0
+
+    end
+    
     SetPedComponentVariation(ped, Drawdata.index, Drawdata.value, Drawdata.texture, 0)
-    local variations =  GetNumberOfPedTextureVariations(ped, Drawdata.index, Drawdata.value)
+    local variations =  GetNumberOfPedTextureVariations(ped, Drawdata.index, Drawdata.value) - 1
+    print(string.format('[DEBUG SetDrawable] variations returned: %s', variations))
     return variations
 end
 
 exports('SetPedDrawable', SetDrawable);
 
 function SetDrawables(ped, Drawdata)
-    if type(Drawdata) ~= 'table' then return end
+    if type(Drawdata) ~= 'table' then 
+        print('[DEBUG SetDrawables] Drawdata is not a table')
+        return 
+    end
 
+    print(string.format('[DEBUG SetDrawables] Processing %d drawables', countTable(Drawdata)))
     for key, drawable in pairs(Drawdata) do
+        print(string.format('[DEBUG SetDrawables] Processing drawable key: %s', key))
         SetDrawable(ped, drawable)
     end
 end
 exports('SetPedDrawables', SetDrawables);
 
 function SetProp(ped, Propdata)
-    if not Propdata then return end
+    if not Propdata then 
+        print('[DEBUG SetProp] Propdata is nil')
+        return 
+    end
+
+    print(string.format('[DEBUG SetProp] index=%s, value=%s, texture=%s', Propdata.index, Propdata.value, Propdata.texture))
 
     if Propdata.value == -1 then
         ClearPedProp(ped, Propdata.index)
         return
     end
 
-    SetPedPropIndex(ped, Propdata.index, Propdata.value, Propdata.Texture, false)
-
-    return GetNumberOfPedPropTextureVariations(ped, Propdata.index, Propdata.value)
+    SetPedPropIndex(ped, Propdata.index, Propdata.value, Propdata.texture, false)
+    local variations = GetNumberOfPedPropTextureVariations(ped, Propdata.index, Propdata.value)
+    print(string.format('[DEBUG SetProp] variations returned: %s, returning: %s', variations, variations - 1))
+    return variations - 1  -- Subtract 1
 end
 
 exports('SetPedProp', SetProp);
@@ -241,6 +264,11 @@ end)
 
 RegisterNuiCallback('setDrawable', function(data, cb)
     local totalTextures = SetDrawable(cache.ped, data)
+    cb(totalTextures)
+end)
+
+RegisterNuiCallback('setProp', function(data, cb)
+    local totalTextures = SetProp(cache.ped, data)
     cb(totalTextures)
 end)
 

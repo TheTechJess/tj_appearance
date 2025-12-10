@@ -7,7 +7,6 @@ local _zoneMultiPoints = {}
 local _zoneStartedAt = 0
 local _lastPointAddTime = 0
 local _pointDebounceDelay = 300 -- milliseconds between point additions
-local CacheAPI = require('client.functions.cache')
 
 
 ---@alias ShapetestIgnore

@@ -71,7 +71,7 @@ export const Hair: FC = () => {
                                     <NumberStepper
                                         value={drawables?.hair.value || 0}
                                         min={0}
-                                        max={drawTotal.hair.total}
+                                        max={drawTotal.hair.total - 1}
                                         onChange={(value: number) => {
                                             if (drawables && drawables.hair) {
                                                 setDrawable(drawables.hair, value);
@@ -89,7 +89,7 @@ export const Hair: FC = () => {
                                     <NumberStepper
                                         value={drawables?.hair.texture || 0}
                                         min={0}
-                                        max={drawTotal.hair.textures}
+                                        max={drawTotal.hair.textures - 1}
                                         onChange={(value: number) => {
                                             if (drawables && drawables.hair) {
                                                 setDrawable(drawables.hair, value, true);
