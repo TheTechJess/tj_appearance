@@ -250,6 +250,12 @@ RegisterNuiCallback('addRestriction', function(restriction, cb)
   end, restriction)
 end)
 
+RegisterNuiCallback('getPlayerInfo', function(identifier, cb)
+  lib.callback('tj_appearance:admin:getPlayerInfo', false, function(playerInfo)
+    cb(playerInfo)
+  end, identifier)
+end)
+
 RegisterNuiCallback('deleteRestriction', function(id, cb)
   lib.callback('tj_appearance:admin:deleteRestriction', false, function(success)
     cb(success)
@@ -288,18 +294,27 @@ end)
 
 RegisterNuiCallback('addZone', function(zone, cb)
   lib.callback('tj_appearance:admin:addZone', false, function(success)
+    if success then
+      CacheAPI.updateCache('zones', zone, 'add')
+    end
     cb(success)
   end, zone)
 end)
 
 RegisterNuiCallback('updateZone', function(zone, cb)
   lib.callback('tj_appearance:admin:updateZone', false, function(success)
+    if success then
+      CacheAPI.updateCache('zones', zone, 'update')
+    end
     cb(success)
   end, zone)
 end)
 
 RegisterNuiCallback('deleteZone', function(id, cb)
   lib.callback('tj_appearance:admin:deleteZone', false, function(success)
+    if success then
+      CacheAPI.updateCache('zones', { id = id }, 'delete')
+    end
     cb(success)
   end, id)
 end)
@@ -350,14 +365,17 @@ RegisterNetEvent('tj_appearance:client:updateRestrictions', function(restriction
 end)
 
 RegisterNetEvent('tj_appearance:client:updateZones', function(zones)
+    CacheAPI.updateCache('zones', zones)
     handleNuiMessage({ action = 'setZones', data = zones }, true)
 end)
 
 RegisterNetEvent('tj_appearance:client:updateOutfits', function(outfits)
+    CacheAPI.updateCache('outfits', outfits)
     handleNuiMessage({ action = 'setOutfits', data = outfits }, true)
 end)
 
 RegisterNetEvent('tj_appearance:client:updateTattoos', function(tattoos)
+    CacheAPI.updateCache('tattoos', tattoos)
     handleNuiMessage({ action = 'setTattoos', data = tattoos }, true)
 end)
 

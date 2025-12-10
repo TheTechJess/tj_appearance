@@ -101,5 +101,11 @@
     "NO_MAKEUP": "You can't add Make Up",
     "NO_OUTFITS": "You don't have outfits",
     "NO_TATTOOS": "You have no current Tattoos",
-    "CANT_SAVE": "You cannot save your current appearance. You have selected a locked item."
+    "CANT_SAVE": "You cannot save your current appearance. You have selected a locked item.",
+
+    "ZONE_MULTIPOINT_INSTRUCTIONS": "[WASD/Q/Z] Move \n [E] Add Point \n [X] Remove Last \n [Backspace] Finish",
+    "ZONE_SINGLEPOINT_INSTRUCTIONS": "[WASD/Q/Z] Move \n [E] Confirm \n [Backspace] Cancel",
+    "ZONE_POINT_ADDED": "Point %d added",
+    "ZONE_POINT_REMOVED": "Last point removed. %d points remaining",
+    "ZONE_NO_POINTS": "No points to remove"
 }

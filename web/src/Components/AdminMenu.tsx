@@ -1,8 +1,9 @@
-import { FC, useEffect, useState, useMemo, lazy, Suspense } from 'react';
+import { FC, useEffect, useState, useMemo, lazy, Suspense, useCallback } from 'react';
 import { Tabs, Button, Stack, Group, Text, TextInput, Select, ActionIcon, Modal, Checkbox, Accordion, Badge, Box, NumberInput, Divider, Loader, Overlay } from '@mantine/core';
 import { IconPalette, IconLock, IconUser, IconShoppingCart, IconMapPin, IconHanger, IconDownload, IconFeather, IconMars, IconVenus } from '@tabler/icons-react';
 import { TriggerNuiCallback } from '../Utils/TriggerNuiCallback';
 import { HandleNuiMessage } from '../Hooks/HandleNuiMessage';
+import { AddOutfitModal } from './admin/AddOutfitModal';
 
 import { useCustomization } from '../Providers/CustomizationProvider';
 const TattoosTab = lazy(() => import('./admin/TattoosTab').then(mod => ({ default: mod.TattoosTab })));
@@ -25,6 +26,8 @@ interface ClothingRestriction {
   job?: string;    // Legacy support
   gang?: string;   // Legacy support
   identifier?: string;
+  citizenid?: string;
+  playerName?: string;
   gender: 'male' | 'female';
   type?: 'model' | 'clothing';
   part?: 'model' | 'drawable' | 'prop';
@@ -132,7 +135,6 @@ export const AdminMenu: FC = () => {
   // Outfits State
   const [outfits, setOutfits] = useState<JobOutfit[]>([]);
   const [addOutfitModalOpen, setAddOutfitModalOpen] = useState(false);
-  const [newOutfit, setNewOutfit] = useState<Partial<JobOutfit>>({ gender: 'male' });
 
   // Tattoos State
   const [tattoos, setTattoos] = useState<TattooDLC[]>([]);
@@ -538,7 +540,19 @@ export const AdminMenu: FC = () => {
   const groupedRestrictions = useMemo(() => {
     if (!Array.isArray(restrictions)) return {};
     return restrictions.reduce((acc, r) => {
-      const key = r.group || r.job || r.gang || 'Unknown';
+      // Use citizenid/playerName if available for identifier-only restrictions
+      let key: string;
+      if (r.citizenid && r.playerName) {
+        key = `${r.citizenid} (${r.playerName})`;
+      } else if (r.citizenid) {
+        key = r.citizenid;
+      } else if (r.identifier && !r.job && !r.gang) {
+        // Identifier-only restriction without player info yet
+        key = 'Player';
+      } else {
+        key = r.group || r.job || r.gang || 'Player';
+      }
+      
       const identifierKey = r.identifier || 'all';
       if (!acc[key]) acc[key] = {};
       if (!acc[key][identifierKey]) acc[key][identifierKey] = [];
@@ -740,7 +754,7 @@ export const AdminMenu: FC = () => {
           </Tabs.Panel>
         </Tabs>
 
-        {isLoadingTab && (
+        {isLoadingTab && !addOutfitModalOpen && (
           <Overlay
             opacity={0.6}
             color="#000"
@@ -1112,81 +1126,11 @@ export const AdminMenu: FC = () => {
           </Stack>
         </Modal>
 
-        <Modal
+        <AddOutfitModal
           opened={addOutfitModalOpen}
-          onClose={() => {
-            setAddOutfitModalOpen(false);
-            setNewOutfit({ gender: 'male' });
-          }}
-          title="Add Job/Gang Outfit"
-          centered
-          zIndex={10000}
-        >
-          <Stack spacing="md">
-            <TextInput
-              label="Outfit Name"
-              placeholder="Police Uniform"
-              value={newOutfit.outfitName || ''}
-              onChange={(e) => setNewOutfit({ ...newOutfit, outfitName: e.target.value })}
-            />
-            <Select
-              label="Gender"
-              value={newOutfit.gender || 'male'}
-              onChange={(value) => setNewOutfit({ ...newOutfit, gender: value as 'male' | 'female' })}
-              data={[
-                { value: 'male', label: 'Male' },
-                { value: 'female', label: 'Female' },
-              ]}
-            />
-            <TextInput
-              label="Job (Optional)"
-              placeholder="police"
-              description="Leave blank if this is for a gang"
-              value={newOutfit.job || ''}
-              onChange={(e) => setNewOutfit({ ...newOutfit, job: e.target.value || undefined })}
-            />
-            <TextInput
-              label="Gang (Optional)"
-              placeholder="ballas"
-              description="Leave blank if this is for a job"
-              value={newOutfit.gang || ''}
-              onChange={(e) => setNewOutfit({ ...newOutfit, gang: e.target.value || undefined })}
-            />
-            <Text c="dimmed" size="xs">
-              Note: Outfit appearance data will be captured from your current character when you save.
-            </Text>
-            <Group position="right" mt="md">
-              <Button 
-                variant="subtle" 
-                onClick={() => {
-                  setAddOutfitModalOpen(false);
-                  setNewOutfit({ gender: 'male' });
-                }}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={() => {
-                  if (!newOutfit.outfitName || (!newOutfit.job && !newOutfit.gang)) return;
-                  
-                  TriggerNuiCallback('addOutfit', newOutfit).then((outfitData: any) => {
-                    const newOutfitItem: JobOutfit = {
-                      ...newOutfit,
-                      ...outfitData,
-                      id: Date.now(),
-                    } as JobOutfit;
-                    setOutfits([...outfits, newOutfitItem]);
-                    setAddOutfitModalOpen(false);
-                    setNewOutfit({ gender: 'male' });
-                  });
-                }}
-                disabled={!newOutfit.outfitName || (!newOutfit.job && !newOutfit.gang)}
-              >
-                Add
-              </Button>
-            </Group>
-          </Stack>
-        </Modal>
+          onClose={() => setAddOutfitModalOpen(false)}
+          onAddOutfit={(outfit) => setOutfits([...outfits, outfit])}
+        />
 
         {/* JSON editor removed */}
       </div>

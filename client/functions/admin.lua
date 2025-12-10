@@ -5,6 +5,9 @@ local _zoneMoveSpeed = 1.0
 local _zoneMultiPointMode = false
 local _zoneMultiPoints = {}
 local _zoneStartedAt = 0
+local _lastPointAddTime = 0
+local _pointDebounceDelay = 300 -- milliseconds between point additions
+local CacheAPI = require('client.functions.cache')
 
 
 ---@alias ShapetestIgnore
@@ -28,27 +31,94 @@ local _zoneStartedAt = 0
 
 -- Raycast setup
 
-local function RaycastFromCamera()
+local _raycastHandle = nil
+local _raycastResult = nil
+
+local function TickRaycast()
   local coords, normal = GetWorldCoordFromScreenCoord(0.5, 0.5)
   local destination = coords + normal * 10
-  local handle = StartShapeTestLosProbe(coords.x, coords.y, coords.z, destination.x, destination.y, destination.z,
-    1, cache.ped, 4)
-
-  while true do
-    Wait(0)
-    local retval, hit, endCoords, surfaceNormal, materialHash, entityHit = GetShapeTestResultIncludingMaterial(
-      handle)
-
+  
+  -- If no handle exists or last one is complete, start a new raycast
+  if not _raycastHandle then
+    _raycastHandle = StartShapeTestLosProbe(coords.x, coords.y, coords.z, destination.x, destination.y, destination.z,
+      1, cache.ped, 4)
+  else
+    -- Check if current raycast is complete
+    local retval, hit, endCoords, surfaceNormal, materialHash, entityHit = GetShapeTestResultIncludingMaterial(_raycastHandle)
+    
     if retval ~= 1 then
-      ---@diagnostic disable-next-line: return-type-mismatch
-      return endCoords
+      -- Raycast completed, store result and reset for next frame
+      _raycastResult = endCoords
+      _raycastHandle = nil
     end
   end
+  
+  return _raycastResult
 end
 
 local function DrawRayLine(from)
   local to = from + vector3(0.0, 0.0, 5.0)
   DrawLine(from.x, from.y, from.z, to.x, to.y, to.z, 255, 0, 0, 200)
+end
+
+local function DrawPolyZoneVisualization(points)
+
+    -- Draw base polygon (ground level)
+    for i = 1, #points do
+        local a = points[i]
+        local b = points[(i % #points) + 1]
+
+        DrawLine(a.x, a.y, 0.0, b.x, b.y, 0.0, 0, 255, 0, 255) -- bottom edges
+    end
+
+    -- Draw top polygon (100 units up)
+    for i = 1, #points do
+        local a = points[i]
+        local b = points[(i % #points) + 1]
+
+        DrawLine(a.x, a.y, 100.0, b.x, b.y, 100.0, 0, 255, 0, 255) -- top edges
+    end
+
+    -- Vertical edges
+    for i = 1, #points do
+        local a = points[i]
+        DrawLine(a.x, a.y, 0.0, a.x, a.y, 100.0, 0, 255, 0, 255)
+    end
+
+    -- Draw filled polygon sides using DrawPoly correctly
+    for i = 1, #points do
+        local a = points[i]
+        local b = points[(i % #points) + 1]
+        
+        -- Bottom triangle of side face
+        DrawPoly(a.x, a.y, 0.0, b.x, b.y, 0.0, b.x, b.y, 100.0, 0, 255, 0, 100)
+        -- Top triangle of side face
+        DrawPoly(a.x, a.y, 0.0, b.x, b.y, 100.0, a.x, a.y, 100.0, 0, 255, 0, 100)
+    end
+
+    -- Draw filled top and bottom faces
+    if #points >= 2 then
+        -- Fan triangulation for top face
+        for i = 2, #points - 1 do
+            DrawPoly(points[1].x, points[1].y, 100.0, 
+                     points[i].x, points[i].y, 100.0, 
+                     points[i+1].x, points[i+1].y, 100.0, 
+                     0, 255, 0, 120)
+        end
+        
+        -- Fan triangulation for bottom face
+        for i = 2, #points - 1 do
+            DrawPoly(points[1].x, points[1].y, 0.0, 
+                     points[i].x, points[i].y, 0.0, 
+                     points[i+1].x, points[i+1].y, 0.0, 
+                     0, 255, 0, 120)
+        end
+    end
+
+    -- Point markers
+    for _, p in ipairs(points) do
+        DrawMarker(28, p.x, p.y, 0.0, 0,0,0, 0,0,0, 0.3, 0.3, 0.3, 0,255,0,120, false, true, 2, false, nil, nil, false)
+    end
 end
 
 local function DisableControls()
@@ -136,6 +206,8 @@ local function HandleFreecamMovement(cam)
 end
 
 local function StopZoneRaycastMode()
+  lib.hideTextUI()
+  SetNuiFocus(true, true)
   _zoneNoclipActive = false
   _zoneRaycastPoint = nil
   _zoneMultiPointMode = false
@@ -147,6 +219,7 @@ local function StartZoneRaycastMode(multiPoint)
   _zoneMultiPointMode = multiPoint or false
   _zoneMultiPoints = {}
   _zoneStartedAt = GetGameTimer()
+  _lastPointAddTime = 0
 
   local cam = CreateCam("DEFAULT_SCRIPTED_CAMERA", true)
   local pedPos = GetEntityCoords(cache.ped)
@@ -155,24 +228,50 @@ local function StartZoneRaycastMode(multiPoint)
   RenderScriptCams(true, false, 0, true, true)
   FreezeEntityPosition(cache.ped, true)
   SendNUIMessage({ action = 'zoneCaptureActive', data = { active = true } })
+  
+  -- Show TextUI instructions
+  local locale = CacheAPI.getLocale()
+  if _zoneMultiPointMode then
+    lib.showTextUI(locale.ZONE_MULTIPOINT_INSTRUCTIONS)
+  else
+    lib.showTextUI(locale.ZONE_SINGLEPOINT_INSTRUCTIONS)
+  end
   CreateThread(function()
     while _zoneNoclipActive do
       HandleFreecamMovement(cam)
-      local from = GetFinalRenderedCamCoord()
-      local hit = RaycastFromCamera()
-      _zoneRaycastPoint = hit
+      
+      -- Tick raycast and get result
+      local hit = TickRaycast()
+      
       if hit then
+        _zoneRaycastPoint = hit
         DrawRayLine(hit)
       end
+      
       DisableControlAction(0, 24, true) -- Disable attack
       DisableControlAction(0, 25, true) -- Disable aim
 
       if _zoneMultiPointMode then
-        -- Multi-point mode: E to add point, Backspace to finish
+        -- Draw the polyzone visualization with current points
+        DrawPolyZoneVisualization(_zoneMultiPoints)
+        
+        -- Multi-point mode: E to add point, X to remove last, Backspace to finish
         if IsControlJustPressed(0, 38) then -- E key
-          if hit then
+          local currentTime = GetGameTimer()
+          if hit and (currentTime - _lastPointAddTime) > _pointDebounceDelay then
             table.insert(_zoneMultiPoints, { x = hit.x, y = hit.y })
-            lib.notify({ type = 'success', description = ('Point %d added'):format(#_zoneMultiPoints) })
+            _lastPointAddTime = currentTime
+            local locale = CacheAPI.getLocale()
+            lib.notify({ type = 'success', description = locale.ZONE_POINT_ADDED:format(#_zoneMultiPoints) })
+          end
+        end
+        if IsControlJustPressed(0, 73) then -- X key to remove last point
+          local locale = CacheAPI.getLocale()
+          if #_zoneMultiPoints > 0 then
+            table.remove(_zoneMultiPoints, #_zoneMultiPoints)
+            lib.notify({ type = 'info', description = locale.ZONE_POINT_REMOVED:format(#_zoneMultiPoints) })
+          else
+            lib.notify({ type = 'error', description = locale.ZONE_NO_POINTS })
           end
         end
         if IsControlJustPressed(0, 177) then -- Backspace to finish
@@ -210,6 +309,7 @@ end
 
 RegisterNuiCallback('startZoneRaycast', function(data, cb)
   StartZoneRaycastMode(data.multiPoint)
+  SetNuiFocus(false, false)
   cb(true)
 end)
 

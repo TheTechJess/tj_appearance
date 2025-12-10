@@ -10,6 +10,8 @@ interface ClothingRestriction {
   job?: string;
   gang?: string;
   identifier?: string;
+  citizenid?: string;
+  playerName?: string;
   gender: 'male' | 'female';
   type?: 'model' | 'clothing';
   part?: 'model' | 'drawable' | 'prop';
@@ -67,8 +69,8 @@ export const RestrictionsTab: FC<RestrictionsTabProps> = ({
   const [texturesAll, setTexturesAll] = useState<boolean>(true);
   const [texturesInput, setTexturesInput] = useState<string>('');
 
-  const handleAddRestriction = () => {
-    if (!newRestriction.itemId || (!newRestriction.job && !newRestriction.gang)) return;
+  const handleAddRestriction = async () => {
+    if (!newRestriction.itemId || (!newRestriction.job && !newRestriction.gang && !newRestriction.identifier)) return;
 
     const part: PartType = (newRestriction.part as PartType) || 'drawable';
     const category = part === 'model' ? 'model' : newRestriction.category;
@@ -79,11 +81,25 @@ export const RestrictionsTab: FC<RestrictionsTabProps> = ({
           .map((s) => parseInt(s.trim(), 10))
           .filter((n) => !isNaN(n));
 
+    let citizenid: string | undefined;
+    let playerName: string | undefined;
+
+    // Fetch player info if identifier is provided
+    if (newRestriction.identifier && !newRestriction.job && !newRestriction.gang) {
+      const playerInfo = await TriggerNuiCallback<{ citizenid: string; name: string }>('getPlayerInfo', newRestriction.identifier);
+      if (playerInfo) {
+        citizenid = playerInfo.citizenid;
+        playerName = playerInfo.name;
+      }
+    }
+
     const restriction: ClothingRestriction = {
       id: `${Date.now()}-${Math.random()}`,
       job: newRestriction.job,
       gang: newRestriction.gang,
       identifier: newRestriction.identifier,
+      citizenid,
+      playerName,
       gender: newRestriction.gender || 'male',
       type: (part === 'model' ? 'model' : 'clothing'),
       part,
@@ -167,7 +183,21 @@ export const RestrictionsTab: FC<RestrictionsTabProps> = ({
 
                   return Object.entries(groupedRestrictions).map(([jobGang, identifierGroups]) => {
                     const totalCount = Object.values(identifierGroups).flat().length;
-                    const type = restrictions.find(r => (r.group || r.job || r.gang) === jobGang)?.job ? 'Job' : 'Gang';
+                    // Get the first restriction to determine the type
+                    const firstRestriction = Object.values(identifierGroups).flat()[0];
+                    let type = 'Player';
+                    let displayName = jobGang;
+                    
+                    if (firstRestriction) {
+                      if (firstRestriction.job) {
+                        type = 'Job';
+                      } else if (firstRestriction.gang) {
+                        type = 'Gang';
+                      } else if (firstRestriction.citizenid || firstRestriction.playerName) {
+                        type = 'Player';
+                        // jobGang already contains the formatted string from AdminMenu grouping
+                      }
+                    }
                   
                     return (
                       <Accordion.Item key={jobGang} value={jobGang}>
@@ -175,9 +205,9 @@ export const RestrictionsTab: FC<RestrictionsTabProps> = ({
                           <Group position="apart" style={{ width: '100%', paddingRight: '1rem' }}>
                             <Group spacing="sm">
                               <Text fw={600} c="white" tt="capitalize">
-                                {jobGang}
+                                {displayName}
                               </Text>
-                              <Badge size="sm" color="blue" variant="light">
+                              <Badge size="sm" color={type === 'Job' ? 'blue' : type === 'Gang' ? 'purple' : 'cyan'} variant="light">
                                 {type}
                               </Badge>
                               <Badge size="sm" color="gray" variant="outline">
@@ -260,7 +290,13 @@ export const RestrictionsTab: FC<RestrictionsTabProps> = ({
           )}
         </div>
 
-        <Modal opened={addModalOpen} onClose={() => setAddModalOpen(false)} title="Add Restriction" centered>
+        <Modal 
+          opened={addModalOpen} 
+          onClose={() => setAddModalOpen(false)} 
+          title="Add Restriction" 
+          centered
+          zIndex={10000}
+        >
           <Stack spacing="sm">
             <Group grow>
               <TextInput

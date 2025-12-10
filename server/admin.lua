@@ -426,7 +426,13 @@ end)
 lib.callback.register('tj_appearance:admin:addOutfit', function(source, outfit)
     if not IsAdmin(source) then return false end
 
-    local newOutfit = table.deepcopy(outfit)
+    local newOutfit = {
+        job = outfit.job,
+        gang = outfit.gang,
+        gender = outfit.gender,
+        outfitName = outfit.outfitName,
+        outfitData = outfit.outfitData
+    }
     newOutfit.id = #ServerCache.outfits + 1
 
     table.insert(ServerCache.outfits, newOutfit)
@@ -527,6 +533,38 @@ lib.callback.register('tj_appearance:admin:deleteModels', function(source, model
 
     return true
 end)
+-- Get player info by identifier
+lib.callback.register('tj_appearance:admin:getPlayerInfo', function(source, identifier)
+    if not IsAdmin(source) then return nil end
+    
+    -- Search all online players for matching identifier
+    for _, playerId in ipairs(GetPlayers()) do
+        local identifiers = GetPlayerIdentifiers(playerId)
+        for _, id in ipairs(identifiers) do
+            if id == identifier then
+                local citizenid = Framework.GetCitizenId(playerId)
+                local playerName = GetPlayerName(playerId)
+                return { citizenid = citizenid, name = playerName }
+            end
+        end
+    end
+    
+    -- If not online, try to get from database
+    -- Extract identifier type and value (e.g., "license:abc123" -> type="license", value="abc123")
+    local identifierType, identifierValue = identifier:match("^(%w+):(.+)$")
+    if identifierType and identifierValue then
+        local query = string.format('SELECT citizenid, JSON_EXTRACT(charinfo, "$.firstname") as firstname, JSON_EXTRACT(charinfo, "$.lastname") as lastname FROM players WHERE %s = ?', identifierType)
+        local result = MySQL.query.await(query, {identifier})
+        if result and result[1] then
+            local firstname = result[1].firstname and result[1].firstname:gsub('"', '') or ''
+            local lastname = result[1].lastname and result[1].lastname:gsub('"', '') or ''
+            return { citizenid = result[1].citizenid, name = firstname .. ' ' .. lastname }
+        end
+    end
+    
+    return nil
+end)
+
 -- Add restriction
 lib.callback.register('tj_appearance:admin:addRestriction', function(source, restriction)
     if not IsAdmin(source) then return false end
@@ -560,6 +598,9 @@ lib.callback.register('tj_appearance:admin:addRestriction', function(source, res
         group = restriction.group,  -- Use unified field
         job = restriction.job,       -- Legacy support
         gang = restriction.gang,     -- Legacy support
+        identifier = restriction.identifier,
+        citizenid = restriction.citizenid,
+        playerName = restriction.playerName,
         gender = restriction.gender,
         type = restriction.type,
         part = restriction.part,
