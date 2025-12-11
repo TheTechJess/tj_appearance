@@ -10,7 +10,7 @@ lib.callback.register('tj_appearance:saveAppearance', function(source, appearanc
     local citizenid = Framework.GetCitizenId(source)
     
     if not citizenid then
-        print('[tj_appearance] ERROR: Could not get citizenid for player ' .. source)
+        DebugPrint('[tj_appearance] ERROR: Could not get citizenid for player ' .. source)
         return false
     end
 
@@ -21,7 +21,7 @@ lib.callback.register('tj_appearance:saveAppearance', function(source, appearanc
     -- Get player data for money check
     local playerData = Framework.GetPlayer(source)
     if not playerData then
-        print('[tj_appearance] ERROR: Could not get player data for source ' .. source)
+        DebugPrint('[tj_appearance] ERROR: Could not get player data for source ' .. source)
         return false
     end
     
@@ -44,7 +44,7 @@ lib.callback.register('tj_appearance:saveAppearance', function(source, appearanc
         local moneyRemoved = Framework.RemoveMoney(source, price)
         
         if moneyRemoved then
-            print(string.format('[tj_appearance] Saved appearance for citizenid: %s (charged $%d)', citizenid, price))
+            DebugPrint(string.format('[tj_appearance] Saved appearance for citizenid: %s (charged $%d)', citizenid, price))
             TriggerClientEvent('ox_lib:notify', source, {
                 title = 'Success',
                 description = string.format('Appearance saved! Charged $%d', price),
@@ -52,7 +52,7 @@ lib.callback.register('tj_appearance:saveAppearance', function(source, appearanc
             })
         else
             -- Failed to remove money, revert the save
-            print(string.format('[tj_appearance] Failed to charge money for citizenid: %s', citizenid))
+            DebugPrint(string.format('[tj_appearance] Failed to charge money for citizenid: %s', citizenid))
             TriggerClientEvent('ox_lib:notify', source, {
                 title = 'Error',
                 description = 'Failed to process payment',
@@ -61,14 +61,14 @@ lib.callback.register('tj_appearance:saveAppearance', function(source, appearanc
             return false
         end
     elseif success then
-        print('[tj_appearance] Saved appearance for citizenid: ' .. citizenid)
+        DebugPrint('[tj_appearance] Saved appearance for citizenid: ' .. citizenid)
         TriggerClientEvent('ox_lib:notify', source, {
             title = 'Success',
             description = 'Appearance saved!',
             type = 'success'
         })
     else
-        print('[tj_appearance] Failed to save appearance for citizenid: ' .. citizenid)
+        DebugPrint('[tj_appearance] Failed to save appearance for citizenid: ' .. citizenid)
         TriggerClientEvent('ox_lib:notify', source, {
             title = 'Error',
             description = 'Failed to save appearance',
@@ -85,7 +85,7 @@ lib.callback.register('tj_appearance:saveOutfit', function(source, outfitData)
     local playerData = Framework.GetPlayer(source)
     
     if not playerData then
-        print('[tj_appearance] ERROR: Could not get player data for source ' .. source)
+        DebugPrint('[tj_appearance] ERROR: Could not get player data for source ' .. source)
         return false
     end
 
@@ -125,7 +125,7 @@ lib.callback.register('tj_appearance:saveOutfit', function(source, outfitData)
     local success, shareCode = Database.SaveOutfit(citizenid, nil, nil, gender, outfitName, outfitToSave)
     
     if success then
-        print(string.format('[tj_appearance] Saved personal outfit "%s" for citizenid: %s (gender: %s) - Share Code: %s', 
+        DebugPrint(string.format('[tj_appearance] Saved personal outfit "%s" for citizenid: %s (gender: %s) - Share Code: %s', 
             outfitName, citizenid, gender, shareCode or 'N/A'))
     end
 
@@ -148,7 +148,7 @@ lib.callback.register('tj_appearance:getOutfits', function(source)
     local gender = isMale and 'male' or 'female'
 
     -- Debug: Print player job/gang info
-    print(string.format('[tj_appearance] Fetching outfits for player %s - Job: %s, Gang: %s, Gender: %s', 
+    DebugPrint(string.format('[tj_appearance] Fetching outfits for player %s - Job: %s, Gang: %s, Gender: %s', 
         citizenid, playerData.job.name or 'none', playerData.gang.name or 'none', gender))
 
     -- Get personal outfits from database
@@ -170,7 +170,7 @@ lib.callback.register('tj_appearance:getOutfits', function(source)
     end
     
     -- Debug: Print outfit counts
-    print(string.format('[tj_appearance] Found %d personal outfits, %d job/gang outfits', 
+    DebugPrint(string.format('[tj_appearance] Found %d personal outfits, %d job/gang outfits', 
         #personalOutfits, #jobOutfits))
 
     -- Transform database format to UI format
@@ -332,7 +332,7 @@ end)
 -- @return table|nil - The appearance data or nil if not found
 function GetPlayerAppearance(identifier)
     if not identifier or identifier == '' then
-        print('[tj_appearance] ERROR: GetPlayerAppearance - Invalid identifier provided')
+        DebugPrint('[tj_appearance] ERROR: GetPlayerAppearance - Invalid identifier provided')
         return nil
     end
 
@@ -356,7 +356,7 @@ exports('GetPlayerAppearance', GetPlayerAppearance)
 -- Server-side admin command to open appearance menu for self or another player
 RegisterCommand('appearance', function(source, args, rawCommand)
     if not source or source == 0 then
-        print("^1[tj_appearance] ERROR: Command can only be used in-game^7")
+        DebugPrint("^1[tj_appearance] ERROR: Command can only be used in-game^7")
         return
     end
     

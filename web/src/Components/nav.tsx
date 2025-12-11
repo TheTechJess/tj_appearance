@@ -212,8 +212,6 @@ export const AppearanceNav: FC<AppearanceNavProps> = ({ animateIn }) => {
 
   const handleSaveOrClose = () => {
     setModal(null);
-
-    console.log('Modal action:', modal);
     
     if (modal === 'save') {
       if (appearance) {

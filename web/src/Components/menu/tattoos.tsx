@@ -9,10 +9,6 @@ import { IconCancel } from '../icons/IconCancel';
 const Tattoos: FC = () => {
   const { tattoos: tattooOptions, appearance, locale, setPlayerTattoos } = useAppearanceStore();
   const { theme } = useCustomization();
-  
-  console.log('Tattoo menu loaded - appearance:', appearance);
-  console.log('Tattoo options available:', tattooOptions?.length);
-  console.log('Current tattoos in appearance:', appearance?.tattoos);
 
   const resolveCollection = (zoneIndex: number, dlcIndex: number) =>
     tattooOptions?.[zoneIndex]?.dlcs?.[dlcIndex]?.label;
@@ -37,11 +33,6 @@ const Tattoos: FC = () => {
 
   useEffect(() => {
     const normalized = normalizeList((appearance?.tattoos as TTattoo[]) || []);
-    console.log('Tattoo menu - appearance updated:', {
-      appearanceTattoos: appearance?.tattoos,
-      normalizedTattoos: normalized,
-      tattooOptions: tattooOptions?.length,
-    });
     setRows(normalized);
   }, [appearance?.tattoos, tattooOptions]);
 
@@ -206,15 +197,6 @@ const Tattoos: FC = () => {
           const rowKey = row.id ?? i;
           const zone = tattooOptions?.[row.zoneIndex];
           const groupedTattoos = filteredTattoos(row.zoneIndex, rowKey);
-          
-          console.log('Tattoo row debug:', {
-            rowIndex: i,
-            zoneIndex: row.zoneIndex,
-            zoneName: zone?.label,
-            groupedTattoosCount: groupedTattoos.length,
-            groupedTattoos,
-            allZones: tattooOptions?.length,
-          });
           
           const selectedDlcIdx = groupedTattoos.findIndex((g) => g.dlcIndex === row.dlcIndex);
           const selectedGroup = groupedTattoos[selectedDlcIdx] || groupedTattoos[0];

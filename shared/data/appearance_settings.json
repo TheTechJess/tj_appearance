@@ -1,11 +1,1 @@
-{
-  "useTarget": true,
-  "enablePedsForShops": true,
-  "blips": {
-    "clothing": { "sprite": 73, "color": 47, "scale": 0.7, "name": "Clothing Store" },
-    "barber":   { "sprite": 71, "color": 4,  "scale": 0.7, "name": "Barber Shop" },
-    "tattoo":   { "sprite": 75, "color": 48, "scale": 0.7, "name": "Tattoo Parlor" },
-    "surgeon":  { "sprite": 102,"color": 2,  "scale": 0.7, "name": "Plastic Surgeon" },
-    "outfits":  { "sprite": 366,"color": 3,  "scale": 0.7, "name": "Outfits" }
-  }
-}
+{"useTarget":true,"blips":{"outfits":{"color":3,"scale":0.7,"sprite":366,"name":"Outfits"},"tattoo":{"color":49,"scale":0.7,"sprite":75,"name":"Tattoo Parlor"},"barber":{"color":4,"scale":0.7,"sprite":71,"name":"Barber Shop"},"surgeon":{"color":2,"scale":0.7,"sprite":102,"name":"Plastic Surgeon"},"clothing":{"color":47,"scale":0.7,"sprite":73,"name":"Clothing Store"}},"enablePedsForShops":true}

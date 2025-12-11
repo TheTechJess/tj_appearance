@@ -71,7 +71,8 @@ local function LoadCache()
             -- It's a flat array, convert to nested structure
             local nested = {}
             for _, restriction in ipairs(loadedRestrictions) do
-                local key = string.format('%s_%s', restriction.job or restriction.group or 'none', restriction.gang or 'none')
+                -- Use just the group name, don't combine job and gang
+                local key = restriction.group or 'none'
                 if not nested[key] then
                     nested[key] = { male = {}, female = {} }
                 end
@@ -649,7 +650,7 @@ lib.callback.register('tj_appearance:admin:addRestriction', function(source, res
     local newId = tostring(maxId + 1)
 
     -- Update cache
-    local key = string.format('%s_%s', restriction.job or 'none', restriction.gang or 'none')
+    local key = restriction.job or restriction.gang or 'none'
     if not ServerCache.restrictions[key] then
         ServerCache.restrictions[key] = { male = {}, female = {} }
     end

@@ -1,6 +1,6 @@
 Config = {}
 
-Config.Debug = false
+Config.Debug = true
 
 Config.Locale = 'en' -- Available options: 'en', 'es', 'fr', 'de', 'it'
 

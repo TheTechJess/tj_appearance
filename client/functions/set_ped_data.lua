@@ -41,22 +41,22 @@ exports('SetPedHeadBlend', SetPedHeadBlend);
 
 function SetDrawable(ped, Drawdata)
     if not Drawdata then 
-        print('[DEBUG SetDrawable] Drawdata is nil')
+        DebugPrint('[DEBUG SetDrawable] Drawdata is nil')
         return 
     end
 
-    print(string.format('[DEBUG SetDrawable] index=%s, value=%s, texture=%s', Drawdata.index, Drawdata.value, Drawdata.texture))
+    DebugPrint(string.format('[DEBUG SetDrawable] index=%s, value=%s, texture=%s', Drawdata.index, Drawdata.value, Drawdata.texture))
     
     -- Handle -1 and -2 (no drawable) - just skip, don't set anything
     if Drawdata.value < 0  then
-        print(string.format('[DEBUG SetDrawable] Skipping index %s (value=%s, no drawable)', Drawdata.index, Drawdata.value))
+        DebugPrint(string.format('[DEBUG SetDrawable] Skipping index %s (value=%s, no drawable)', Drawdata.index, Drawdata.value))
         Drawdata.value = 0
 
     end
     
     SetPedComponentVariation(ped, Drawdata.index, Drawdata.value, Drawdata.texture, 0)
     local variations =  GetNumberOfPedTextureVariations(ped, Drawdata.index, Drawdata.value) - 1
-    print(string.format('[DEBUG SetDrawable] variations returned: %s', variations))
+    DebugPrint(string.format('[DEBUG SetDrawable] variations returned: %s', variations))
     return variations
 end
 
@@ -64,13 +64,13 @@ exports('SetPedDrawable', SetDrawable);
 
 function SetDrawables(ped, Drawdata)
     if type(Drawdata) ~= 'table' then 
-        print('[DEBUG SetDrawables] Drawdata is not a table')
+        DebugPrint('[DEBUG SetDrawables] Drawdata is not a table')
         return 
     end
 
-    print(string.format('[DEBUG SetDrawables] Processing %d drawables', countTable(Drawdata)))
+    DebugPrint(string.format('[DEBUG SetDrawables] Processing %d drawables', countTable(Drawdata)))
     for key, drawable in pairs(Drawdata) do
-        print(string.format('[DEBUG SetDrawables] Processing drawable key: %s', key))
+        DebugPrint(string.format('[DEBUG SetDrawables] Processing drawable key: %s', key))
         SetDrawable(ped, drawable)
     end
 end
@@ -78,12 +78,11 @@ exports('SetPedDrawables', SetDrawables);
 
 function SetProp(ped, Propdata)
     if not Propdata then 
-        print('[DEBUG SetProp] Propdata is nil')
+        DebugPrint('[DEBUG SetProp] Propdata is nil')
         return 
     end
 
-    print(string.format('[DEBUG SetProp] index=%s, value=%s, texture=%s', Propdata.index, Propdata.value, Propdata.texture))
-
+    DebugPrint(string.format('[DEBUG SetProp] index=%s, value=%s, texture=%s', Propdata.index, Propdata.value, Propdata.texture))
     if Propdata.value == -1 then
         ClearPedProp(ped, Propdata.index)
         return
@@ -91,7 +90,7 @@ function SetProp(ped, Propdata)
 
     SetPedPropIndex(ped, Propdata.index, Propdata.value, Propdata.texture, false)
     local variations = GetNumberOfPedPropTextureVariations(ped, Propdata.index, Propdata.value)
-    print(string.format('[DEBUG SetProp] variations returned: %s, returning: %s', variations, variations - 1))
+    DebugPrint(string.format('[DEBUG SetProp] variations returned: %s, returning: %s', variations, variations - 1))
     return variations
 end
 
@@ -317,7 +316,7 @@ local function SetPedAppearance(ped, data)
 
             
     if data then
-        print('Setting ped appearance...')
+        DebugPrint('Setting ped appearance...')
         -- Handle drawables
         if data.drawables then
             if type(data.drawables) == 'table' then

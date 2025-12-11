@@ -136,13 +136,13 @@ RegisterNuiCallback('save', function(data, cb)
   
   lib.callback('tj_appearance:saveAppearance', false, function(success)
     if success then
-      --print('[tj_appearance] Appearance saved successfully')
+      DebugPrint('[tj_appearance] Appearance saved successfully')
       handleNuiMessage({ action = 'setVisibleApp', data = false }, false)
       ToggleCam(false)
       cb('ok')
     else
       -- Save failed (likely due to insufficient funds), revert appearance
-      print('[tj_appearance] Save failed, reverting appearance')
+      DebugPrint('[tj_appearance] Save failed, reverting appearance')
       
       -- Revert to previous appearance
       if beforeAppearance and beforeAppearance.model then
@@ -192,7 +192,7 @@ RegisterNuiCallback('saveOutfit', function(outfitData, cb)
   -- job is optional and indicates if this is a job/gang outfit (admin only)
   lib.callback('tj_appearance:saveOutfit', false, function(success)
     if success then
-      print('[tj_appearance] Outfit saved successfully')
+      DebugPrint('[tj_appearance] Outfit saved successfully')
       
       -- Fetch updated outfits list
       lib.callback('tj_appearance:getOutfits', false, function(outfits)
@@ -202,7 +202,7 @@ RegisterNuiCallback('saveOutfit', function(outfitData, cb)
         })
       end)
     else
-      print('[tj_appearance] Failed to save outfit')
+      DebugPrint('[tj_appearance] Failed to save outfit')
       cb({ success = false, error = 'Failed to save outfit' })
     end
   end, outfitData)

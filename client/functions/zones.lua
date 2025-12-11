@@ -153,7 +153,7 @@ end)
 local function initializeZones()
     local zones = CacheAPI.getZones()
 
-    print(string.format('[tj_appearance] Initializing %d zones', #zones))
+    DebugPrint(string.format('[tj_appearance] Initializing %d zones', #zones))
 
     for _, zone in ipairs(zones) do
         if zone.enablePed then

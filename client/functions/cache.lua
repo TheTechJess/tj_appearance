@@ -254,50 +254,65 @@ local function GetPlayerRestrictions()
         female = { models = {}, drawables = {}, props = {} }
     }
 
+    print('[GetPlayerRestrictions] Player job:', playerJob, 'gang:', playerGang)
+    print('[GetPlayerRestrictions] Loaded restrictions:', json.encode(Cache.blacklist.restrictions))
+
     if not Cache.blacklist.restrictions or type(Cache.blacklist.restrictions) ~= 'table' then
         return blocklist
     end
 
-    -- Process each restriction in the flat array
-    for _, restriction in ipairs(Cache.blacklist.restrictions) do
+    -- Process nested structure: restrictions are grouped by group name (job/gang)
+    for groupName, genderRestrictions in pairs(Cache.blacklist.restrictions) do
+        -- Check if this group's restrictions should apply to the player
         local isBlocked = false
-
-        -- If restriction has a group, check if player has it (as job OR gang)
-        if restriction.group and restriction.group ~= '' then
-            -- Player needs to have this group (as job or gang) to access the item
-            -- If they don't have it, block them
-            if playerJob ~= restriction.group and playerGang ~= restriction.group then
-                isBlocked = true
-            end
+        
+        if groupName == 'none' then
+            -- No group restriction = available to everyone, don't block
+            isBlocked = false
+        elseif playerJob ~= groupName and playerGang ~= groupName then
+            -- Player doesn't have this group (as job or gang), so block them
+            isBlocked = true
         end
-        -- No group = available to everyone, so isBlocked stays false
+        
+        -- Only add to blacklist if player is blocked from this group
+        if isBlocked and type(genderRestrictions) == 'table' then
+            -- Iterate through male/female restrictions
+            for gender, restrictionList in pairs(genderRestrictions) do
+                if type(restrictionList) == 'table' and (gender == 'male' or gender == 'female') then
+                    for _, restriction in ipairs(restrictionList) do
+                        -- Process each restriction
+                        if restriction.type == 'model' then
+                            local modelName = restriction.itemId
+                            -- Don't block freemode models
+                            if modelName ~= 'mp_m_freemode_01' and modelName ~= 'mp_f_freemode_01' then
+                                table.insert(blocklist[gender].models, modelName)
+                            end
+                        elseif restriction.type == 'clothing' then
+                            -- Handle clothing/prop restrictions
+                            local targetList = (restriction.part == 'prop') and blocklist[gender].props or blocklist[gender].drawables
 
-        -- Only add to blacklist if player is blocked from this restriction
-        if isBlocked then
-            -- Filter by gender if specified
-            local gender = restriction.gender
-            if gender and (gender == 'male' or gender == 'female') then
-                if restriction.type == 'model' then
-                    local modelName = restriction.itemId
-                    -- Don't block freemode models
-                    if modelName ~= 'mp_m_freemode_01' and modelName ~= 'mp_f_freemode_01' then
-                        table.insert(blocklist[gender].models, modelName)
-                    end
-                elseif restriction.type == 'clothing' then
-                    -- Handle clothing/prop restrictions
-                    local targetList = (restriction.part == 'prop') and blocklist[gender].props or
-                    blocklist[gender].drawables
+                            if restriction.texturesAll then
+                                -- Lock all textures for this item
+                                if not targetList[restriction.category] then
+                                    targetList[restriction.category] = { textures = {}, values = {} }
+                                end
 
-                    if restriction.texturesAll then
-                        if not targetList[restriction.category] then
-                            targetList[restriction.category] = { values = {} }
+                                table.insert(targetList[restriction.category].values, restriction.itemId)
+                                local key = tostring(restriction.itemId)
+                                targetList[restriction.category].textures[key] = {}
+
+                                -- Mark all possible textures as locked (0-25 max)
+                                for i = 0, 25 do
+                                    table.insert(targetList[restriction.category].textures[key], i)
+                                end
+
+                            elseif restriction.textures and #restriction.textures > 0 then
+                                if not targetList[restriction.category] then
+                                    targetList[restriction.category] = { textures = {} }
+                                end
+                                targetList[restriction.category].textures[tostring(restriction.itemId)] = restriction.textures
+                            end
                         end
-                        table.insert(targetList[restriction.category].values, restriction.itemId)
-                    elseif restriction.textures and #restriction.textures > 0 then
-                        if not targetList[restriction.category] then
-                            targetList[restriction.category] = { textures = {} }
-                        end
-                        targetList[restriction.category].textures[tostring(restriction.itemId)] = restriction.textures
                     end
                 end
             end

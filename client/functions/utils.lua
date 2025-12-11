@@ -69,17 +69,14 @@ function countTable(t)
 end
 
 RegisterNuiCallback('toggleItem', function(info, cb)
-    print('[toggleItem] Received:', json.encode(info))
-    
     local itemsToApply = {}
-    
+
     -- Check if hookData is empty - if so, it's a prop toggle
     local isEmptyHookData = not info.hookData or (type(info.hookData) == 'table' and #info.hookData == 0)
-    
+
     if isEmptyHookData then
         -- It's a prop (like hats, masks, glasses)
-        print('[toggleItem] Detected as prop toggle')
-        
+
         if info.toggle then
             -- Toggling ON: Remove the prop (set to -1)
             if info.data then
@@ -91,67 +88,62 @@ RegisterNuiCallback('toggleItem', function(info, cb)
                         texture = 0
                     }
                 }
-                print('[toggleItem] Toggling ON (removing prop):', json.encode(itemsToApply))
             end
         else
             -- Toggling OFF: Restore the prop with its current value
             if info.data then
                 itemsToApply = { info.data }
-                print('[toggleItem] Toggling OFF (restoring prop):', json.encode(itemsToApply))
             end
         end
     else
         -- It's a drawable (like shirts, jackets, pants)
-        print('[toggleItem] Detected as drawable toggle')
-        
+
         if info.toggle then
             -- Toggling ON: Remove clothes (apply variant 15 = naked/empty)
             if info.hook and info.hook.drawables then
                 itemsToApply = info.hook.drawables
-                print('[toggleItem] Toggling ON (removing clothes), applying hook.drawables:', json.encode(itemsToApply))
             end
         else
             -- Toggling OFF: Restore clothes (apply current appearance values)
             itemsToApply = info.hookData or {}
-            print('[toggleItem] Toggling OFF (restoring clothes), applying hookData:', json.encode(itemsToApply))
         end
     end
-    
+
     -- Apply each item
     for _, item in ipairs(itemsToApply) do
         -- Get the index/component number
         local componentIndex = item.component or item.index
-        
+
         if componentIndex ~= nil and item.id then
             -- Check peddata to determine if it's a component or prop
-            local isComponent = peddata.Components[item.id] ~= nil
-            local isProp = peddata.Props[item.id] ~= nil
+            local isComponent = peddata.Components[item.component] == item.id or
+            peddata.Components[item.index] == item.id
+            local isProp = peddata.Props[item.index] == item.id
 
-            print(string.format('[toggleItem] Processing item id=%s at index=%d: isComponent=%s, isProp=%s', 
-                item.id, componentIndex, tostring(isComponent), tostring(isProp)))
-            
             if isComponent then
                 -- It's a drawable (component)
                 local value = item.variant or item.value or 0
                 local texture = item.texture or 0
-                print(string.format('[toggleItem] Setting drawable: component=%d, value=%d, texture=%d (id=%s)', 
-                    componentIndex, value, texture, item.id))
                 SetPedComponentVariation(cache.ped, componentIndex, value, texture, 0)
             elseif isProp then
                 -- It's a prop
                 if item.value == -1 then
-                    print(string.format('[toggleItem] Clearing prop: index=%d (id=%s)', componentIndex, item.id))
                     ClearPedProp(cache.ped, componentIndex)
                 else
-                    print(string.format('[toggleItem] Setting prop: index=%d, value=%d, texture=%d (id=%s)', 
-                        componentIndex, item.value, item.texture or 0, item.id))
                     SetPedPropIndex(cache.ped, componentIndex, item.value, item.texture or 0, false)
                 end
             else
-                print(string.format('[toggleItem] Warning: Unknown item type for id=%s', item.id))
+                DebugPrint(string.format('[toggleItem] Warning: Unknown item type for id=%s', item.id))
             end
         end
     end
-    
+
     cb(info.toggle)
 end)
+
+
+function DebugPrint(data)
+    if Config.Debug then
+    print(data)
+    end
+end

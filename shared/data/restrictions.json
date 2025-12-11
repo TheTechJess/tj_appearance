@@ -1,1 +1,1 @@
-{"ballas_none":{"female":[],"male":[]},"none_none":{"female":[{"gender":"female","texturesAll":true,"id":"2","category":"shoes","type":"clothing","identifier":"ZG6012ZQ","part":"drawable","itemId":2}],"male":[]},"police_none":{"female":[{"job":"police","type":"clothing","gender":"female","texturesAll":true,"itemId":6,"id":"1","part":"drawable","category":"jackets"}],"male":[]}}
+{"police":{"female":[{"id":"1","itemId":6,"type":"clothing","job":"police","part":"drawable","category":"jackets","texturesAll":true,"gender":"female"}],"male":[]},"none":{"female":[],"male":[]}}
