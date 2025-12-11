@@ -59,6 +59,6 @@ return {
         [10] = "ChestHair",
         [11] = "BodyBlemishes",
         [12] = "AddBodyBlemishes",
-        [13] = "EyeColor"
+        [13] = "EyeColour"
     }
 }

@@ -94,7 +94,6 @@ export const ColourDropdown: FC<ColourDropdownProps> = (props) => {
 
   // When user clicks a colour
   const handleClick = (i: number) => {
-    if (i === index) return;
     const selectedColour = { ...colours[i], index: i };
     setSelectedIndex(i);
     setDisplay(selectedColour.label);
@@ -166,7 +165,6 @@ export const ColourDropdown: FC<ColourDropdownProps> = (props) => {
                 key={i}
                 component="button"
                 onClick={() => {
-                  if (i === index) return;
                   const selectedColour = { ...colours[i], index: i };
                   setSelectedIndex(i);
                   setDisplay(selectedColour.label);

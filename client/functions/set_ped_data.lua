@@ -4,7 +4,7 @@ function SetHeadOverlay(ped, HeadBlendData)
 
 
     if HeadBlendData.index == 13 then
-        SetPedEyeColor(ped, HeadBlendData.value)
+        SetPedEyeColor(ped, HeadBlendData.overlayValue)
     end
 
     if HeadBlendData.id == 'hairColour' then

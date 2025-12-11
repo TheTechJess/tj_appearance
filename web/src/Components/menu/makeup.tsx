@@ -177,7 +177,7 @@ export const MakeupMenu: FC = () => {
                                     </Box>
                                     <ColourDropdown
                                         colourType="eye"
-                                        index={headOverlay.EyeColour.value || 0}
+                                        index={headOverlay.EyeColour.overlayValue ?? 0}
                                         value={null}
                                         onChange={(value) => {
                                             const firstColourValue = typeof value === 'object' && value !== null && 'index' in value
@@ -188,7 +188,7 @@ export const MakeupMenu: FC = () => {
                                             if (headOverlay && headOverlay.EyeColour) {
                                                 setEyeColour({
                                                     ...(headOverlay.EyeColour || {}),
-                                                    value: firstColourValue,
+                                                    overlayValue: firstColourValue,
                                                 })
                                             }
                                         }}
