@@ -254,9 +254,6 @@ local function GetPlayerRestrictions()
         female = { models = {}, drawables = {}, props = {} }
     }
 
-    print('[GetPlayerRestrictions] Player job:', playerJob, 'gang:', playerGang)
-    print('[GetPlayerRestrictions] Loaded restrictions:', json.encode(Cache.blacklist.restrictions))
-
     if not Cache.blacklist.restrictions or type(Cache.blacklist.restrictions) ~= 'table' then
         return blocklist
     end

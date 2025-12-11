@@ -188,7 +188,7 @@ export const MakeupMenu: FC = () => {
                                             if (headOverlay && headOverlay.EyeColour) {
                                                 setEyeColour({
                                                     ...(headOverlay.EyeColour || {}),
-                                                    overlayValue: firstColourValue,
+                                                    value: firstColourValue,
                                                 })
                                             }
                                         }}
