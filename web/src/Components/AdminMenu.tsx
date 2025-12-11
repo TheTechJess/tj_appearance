@@ -1290,6 +1290,7 @@ export const AdminMenu: FC = () => {
                     setPolyzonePointsInput('');
                   });
                 }}
+                disabled={!editingZone?.coords || (editingZone.coords.x === 0 && editingZone.coords.y === 0 && editingZone.coords.z === 0)}
               >
                 {editingZone?.id ? 'Update' : 'Add'}
               </Button>

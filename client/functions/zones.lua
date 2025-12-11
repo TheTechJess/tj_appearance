@@ -84,7 +84,7 @@ local function createPolyZone(zone)
     local poly = lib.zones.poly({
         name = 'tj_appearance_zone_' .. zone.id,
         points = points,
-        thickness = 100.0,
+        thickness = 10.0,
         debug = Config.Debug,
         onEnter = function()
             if not hasAccess(zone) then return end
@@ -161,6 +161,7 @@ local function initializeZones()
             createZonePed(zone)
         elseif zone.polyzone and #zone.polyzone > 0 then
             -- Create polyzone interaction
+            DebugPrint(string.format('[tj_appearance] Creating polyzone for zone ID: %s', zone.id))
             createPolyZone(zone)
         elseif zone.coords then
             -- Create point marker interaction (fallback)

@@ -5,6 +5,12 @@ lib.callback.register('getplayerInformation', getPlyInfo)
 -- Load database module
 local Database = require('server.database')
 
+function DebugPrint(data)
+    if Config.Debug then
+    print(data)
+    end
+end
+
 -- Save player appearance callback
 lib.callback.register('tj_appearance:saveAppearance', function(source, appearance)
     local citizenid = Framework.GetCitizenId(source)
