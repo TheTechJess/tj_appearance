@@ -159,6 +159,16 @@ export const AddZoneModal: FC<AddZoneModalProps> = ({
     }
   }, [opened, editingZone, capturedCoords, capturedPolyzonePoints, initialized, appearanceSettings]);
 
+  // When zone type changes on a new zone, apply blip defaults for that type
+  useEffect(() => {
+    if (!opened || editingZone) return;
+    const defaults = appearanceSettings?.blips?.[zoneType] || {};
+    setZoneBlipSprite(defaults.sprite ?? 0);
+    setZoneBlipColor(defaults.color ?? 0);
+    setZoneBlipScale(defaults.scale ?? 0.7);
+    setZoneBlipName(defaults.name ?? '');
+  }, [zoneType, opened, editingZone, appearanceSettings]);
+
   const handleSave = () => {
     // Parse coords
     const parts = coordsInput.split(',').map((p) => parseFloat(p.trim()));

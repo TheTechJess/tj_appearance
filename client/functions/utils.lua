@@ -1,5 +1,7 @@
 local peddata = require('modules.ped')
 
+
+
 function Tofloat(num)
     -- Safely convert input to float; handle nil and non-number values
     if num == nil then
@@ -117,7 +119,7 @@ RegisterNuiCallback('toggleItem', function(info, cb)
         if componentIndex ~= nil and item.id then
             -- Check peddata to determine if it's a component or prop
             local isComponent = peddata.Components[item.component] == item.id or
-            peddata.Components[item.index] == item.id
+                peddata.Components[item.index] == item.id
             local isProp = peddata.Props[item.index] == item.id
 
             if isComponent then
@@ -144,6 +146,22 @@ end)
 
 function DebugPrint(data)
     if Config.Debug then
-    print(data)
+        print(data)
     end
 end
+
+
+
+
+RegisterNuiCallback('teleportToZone', function(info, cb)
+    local hasPermission = lib.callback.await('tj_appearance:admin:isAdmin', false)
+
+    if not hasPermission then
+        cb({ success = false, message = 'You do not have permission to use this feature.' })
+        return
+    end
+
+    SetEntityCoords(cache.ped, info.x, info.y, info.z + 1.0, false, false, false, true)
+end)
+
+

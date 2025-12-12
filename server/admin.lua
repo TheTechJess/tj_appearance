@@ -262,6 +262,10 @@ function IsAdmin(source)
     return isAdmin
 end
 
+lib.callback.register('tj_appearance:admin:isAdmin', function(source)
+    return IsAdmin(source)
+end)
+
 -- Save theme configuration (includes shape)
 lib.callback.register('tj_appearance:admin:saveTheme', function(source, theme)
     if not IsAdmin(source) then return false end

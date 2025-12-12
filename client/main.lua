@@ -1,4 +1,5 @@
 local handleNuiMessage = require('modules.nui')
+require("modules.huddata")
 
 _CurrentTattoos = _CurrentTattoos or {}
 _CurrentMenuType = 'clothing' -- Track current menu type for pricing
@@ -82,15 +83,7 @@ function OpenAppearanceMenu(zone)
                 }
             }, true)
 
-            -- Send locked models separately
-            handleNuiMessage({
-                action = 'setLockedModels',
-                data = lockedModels
-            }, true)
 
-            Wait(100)
-            ToggleCam(true)
-            handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
         end)
     else
         -- do other stuff
@@ -113,11 +106,18 @@ function OpenAppearanceMenu(zone)
                 action = 'setLockedModels',
                 data = lockedModels
             }, true)
+    end
+
+                -- Send locked models separately
+            handleNuiMessage({
+                action = 'setLockedModels',
+                data = lockedModels
+            }, true)
 
             Wait(100)
             ToggleCam(true)
             handleNuiMessage({ action = 'setVisibleApp', data = true }, true)
-    end
+    HudToggle(true)  -- Hide HUD when menu is open
 end
 
 -- Listen for server event to open appearance menu
@@ -185,6 +185,7 @@ RegisterNuiCallback('save', function(data, cb)
       cb('ok')
     end
   end, appearance)
+  HudToggle(false)  -- Show HUD when menu is closed
 end)
 
 RegisterNuiCallback('saveOutfit', function(outfitData, cb)
@@ -326,6 +327,7 @@ RegisterNuiCallback('cancel', function(data, cb)
   
   handleNuiMessage({ action = 'setVisibleApp', data = false }, false)
   ToggleCam(false)
+  HudToggle(false)  -- Show HUD when menu is closed
   cb('ok')
 end)
 

@@ -105,6 +105,8 @@ local function createPolyZone(zone)
     })
 
     activeZones[zone.id] = poly
+
+    Wait(100) -- Small delay to ensure proper setup
 end
 
 -- Thread for marker rendering when not using target
