@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { Stack, Group, Text, Button, Select, Box, Badge, ActionIcon } from '@mantine/core';
-import { IconPlus, IconChevronDown, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconChevronDown, IconTrash, IconMapPin } from '@tabler/icons-react';
 import { TriggerNuiCallback } from '../../Utils/TriggerNuiCallback';
 
 interface Zone {
@@ -136,6 +136,20 @@ export const ZonesTab: FC<ZonesTabProps> = ({
                       </Group>
                     </div>
                     <Group spacing="xs" ml="md">
+                      <ActionIcon 
+                        color="cyan"
+                        variant="light"
+                        onClick={() => {
+                          TriggerNuiCallback('teleportToZone', {
+                            x: zone.coords.x,
+                            y: zone.coords.y,
+                            z: zone.coords.z,
+                            heading: zone.coords.heading || 0
+                          });
+                        }}
+                      >
+                        <IconMapPin size={16} />
+                      </ActionIcon>
                       <ActionIcon 
                         color="blue"
                         variant="light"

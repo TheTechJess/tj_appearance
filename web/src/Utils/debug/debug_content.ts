@@ -457,9 +457,9 @@ export const debugAppearance: TAppearance = {
             id: 'Cheekbone_High',
             value: 0,
         },
-        Neck_Thikness: {
+        Neck_Thickness: {
             index: 19,
-            id: 'Neck_Thikness',
+            id: 'Neck_Thickness',
             value: 0,
         },
         Chin_Hole: {

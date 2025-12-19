@@ -14,6 +14,7 @@ const ModelsTab = lazy(() => import('./admin/ModelsTab').then(mod => ({ default:
 const RestrictionsTab = lazy(() => import('./admin/RestrictionsTab').then(mod => ({ default: mod.RestrictionsTab })));
 const ZonesTab = lazy(() => import('./admin/ZonesTab').then(mod => ({ default: mod.ZonesTab })));
 const OutfitsTab = lazy(() => import('./admin/OutfitsTab').then(mod => ({ default: mod.OutfitsTab })));
+const InitialClothesTab = lazy(() => import('./admin/InitialClothesTab').then(mod => ({ default: mod.InitialClothesTab })));
 
 interface ThemeConfig {
   primaryColor: string; // Active tab color
@@ -58,7 +59,14 @@ interface Zone {
 interface AppearanceSettings {
   useTarget: boolean;
   enablePedsForShops: boolean;
+  chargePerTattoo: boolean;
   blips: Record<string, { sprite?: number; color?: number; scale?: number; name?: string }>;
+  prices: {
+    clothing?: number;
+    barber?: number;
+    tattoo?: number;
+    surgeon?: number;
+  };
 }
 
 interface JobOutfit {
@@ -127,7 +135,40 @@ export const AdminMenu: FC = () => {
   const [appearanceSettings, setAppearanceSettings] = useState<AppearanceSettings>({
     useTarget: true,
     enablePedsForShops: true,
+    chargePerTattoo: false,
+    prices: {
+      clothing: 0,
+      barber: 0,
+      tattoo: 0,
+      surgeon: 0
+    },
     blips: {}
+  });
+
+  // Initial Player Clothes State
+  interface ClothingConfig {
+    model: string;
+    components: Array<{ drawable: number; texture: number }>;
+    props: Array<{ drawable: number; texture: number }>;
+    hair: { color: number; highlight: number; style: number; texture: number };
+  }
+  
+  const [initialClothes, setInitialClothes] = useState<{
+    male: ClothingConfig;
+    female: ClothingConfig;
+  }>({
+    male: {
+      model: 'mp_m_freemode_01',
+      components: Array(12).fill(null).map(() => ({ drawable: 0, texture: 0 })),
+      props: Array(5).fill(null).map(() => ({ drawable: -1, texture: -1 })),
+      hair: { color: 0, highlight: 0, style: 0, texture: 0 }
+    },
+    female: {
+      model: 'mp_f_freemode_01',
+      components: Array(12).fill(null).map(() => ({ drawable: 0, texture: 0 })),
+      props: Array(5).fill(null).map(() => ({ drawable: -1, texture: -1 })),
+      hair: { color: 0, highlight: 0, style: 0, texture: 0 }
+    }
   });
 
   // Loading State
@@ -260,11 +301,22 @@ export const AdminMenu: FC = () => {
   });
 
   HandleNuiMessage<AppearanceSettings>('setAppearanceSettings', (data) => {
-    if (data) setAppearanceSettings(data);
+    if (data) {
+      const { initialClothes: clothes, ...settings } = data as any;
+      setAppearanceSettings(settings);
+      if (clothes) setInitialClothes(clothes);
+    }
   });
 
   HandleNuiMessage<JobOutfit[]>('setOutfits', (data) => {
     setOutfits(data || []);
+  });
+
+  HandleNuiMessage<{
+    male: ClothingConfig;
+    female: ClothingConfig;
+  }>('setInitialClothes', (data) => {
+    if (data) setInitialClothes(data);
   });
 
 
@@ -649,25 +701,54 @@ export const AdminMenu: FC = () => {
 
           <Tabs.Panel value="settings" pt="xl">
             <Stack spacing="md">
-              <Checkbox
-                label={locale.ADMIN_USE_TARGET || 'Use ox_target for peds'}
-                checked={appearanceSettings.useTarget}
-                onChange={(e) => setAppearanceSettings({ ...appearanceSettings, useTarget: e.currentTarget.checked })}
-              />
-              <Checkbox
-                label={locale.ADMIN_ENABLE_PEDS || 'Enable peds for shops'}
-                checked={appearanceSettings.enablePedsForShops}
-                onChange={(e) => setAppearanceSettings({ ...appearanceSettings, enablePedsForShops: e.currentTarget.checked })}
-              />
+              <Group grow>
+                <Checkbox
+                  label={locale.ADMIN_USE_TARGET || 'Use ox_target for peds'}
+                  checked={appearanceSettings.useTarget}
+                  onChange={(e) => setAppearanceSettings({ ...appearanceSettings, useTarget: e.currentTarget.checked })}
+                />
+                <Checkbox
+                  label={locale.ADMIN_ENABLE_PEDS || 'Enable peds for shops'}
+                  checked={appearanceSettings.enablePedsForShops}
+                  onChange={(e) => setAppearanceSettings({ ...appearanceSettings, enablePedsForShops: e.currentTarget.checked })}
+                />
+                <Checkbox
+                  label={locale.ADMIN_CHARGE_PER_TATTOO || 'Charge per tattoo'}
+                  checked={appearanceSettings.chargePerTattoo}
+                  onChange={(e) => setAppearanceSettings({ ...appearanceSettings, chargePerTattoo: e.currentTarget.checked })}
+                />
+              </Group>
 
-              <Divider label={locale.ADMIN_BLIP_DEFAULTS || 'Blip defaults'} labelPosition="left" />
-              <Stack spacing="sm">
+              <Divider label={locale.ADMIN_PRICES || 'Prices'} labelPosition="left" />
+              <Group grow spacing="xs">
+                {(['clothing','barber','tattoo','surgeon'] as const).map((key) => (
+                  <NumberInput
+                    key={key}
+                    label={key.charAt(0).toUpperCase() + key.slice(1)}
+                    value={appearanceSettings.prices?.[key] ?? 0}
+                    min={0}
+                    onChange={(val) => {
+                      setAppearanceSettings({
+                        ...appearanceSettings,
+                        prices: {
+                          ...appearanceSettings.prices,
+                          [key]: val as number
+                        }
+                      });
+                    }}
+                    size="xs"
+                  />
+                ))}
+              </Group>
+
+              <Divider label={locale.ADMIN_BLIP_DEFAULTS || 'Blip Defaults'} labelPosition="left" />
+              <Group spacing="xs" align="flex-start">
                 {['clothing','barber','tattoo','surgeon','outfits'].map((key) => {
                   const blip = appearanceSettings.blips?.[key] || {};
                   return (
-                    <Box key={key} p="sm" style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8 }}>
-                      <Text c="white" size="sm" fw={600} tt="capitalize">{key}</Text>
-                      <Group grow mt="xs" spacing="xs">
+                    <Box key={key} p="xs" style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: 6, flex: 1, minWidth: 160 }}>
+                      <Text c="white" size="xs" fw={600} tt="capitalize" mb="xs">{key}</Text>
+                      <Stack spacing={4}>
                         <NumberInput
                           label="Sprite"
                           value={blip.sprite ?? 0}
@@ -680,6 +761,8 @@ export const AdminMenu: FC = () => {
                               }
                             });
                           }}
+                          size="xs"
+                          hideControls
                         />
                         <NumberInput
                           label="Color"
@@ -693,6 +776,8 @@ export const AdminMenu: FC = () => {
                               }
                             });
                           }}
+                          size="xs"
+                          hideControls
                         />
                         <NumberInput
                           label="Scale"
@@ -710,31 +795,45 @@ export const AdminMenu: FC = () => {
                               }
                             });
                           }}
+                          size="xs"
+                          hideControls
                         />
-                      </Group>
-                      <TextInput
-                        mt="xs"
-                        label="Name"
-                        value={blip.name || ''}
-                        onChange={(e) => {
-                          setAppearanceSettings({
-                            ...appearanceSettings,
-                            blips: {
-                              ...appearanceSettings.blips,
-                              [key]: { ...blip, name: e.target.value }
-                            }
-                          });
-                        }}
-                      />
+                        <TextInput
+                          label="Name"
+                          value={blip.name || ''}
+                          onChange={(e) => {
+                            setAppearanceSettings({
+                              ...appearanceSettings,
+                              blips: {
+                                ...appearanceSettings.blips,
+                                [key]: { ...blip, name: e.target.value }
+                              }
+                            });
+                          }}
+                          size="xs"
+                        />
+                      </Stack>
                     </Box>
                   );
                 })}
-              </Stack>
+              </Group>
+
+              <Divider label={locale.ADMIN_INITIAL_CLOTHES_TITLE || 'Initial Player Clothes'} labelPosition="left" />
+              <Suspense fallback={<Loader />}>
+                <InitialClothesTab
+                  initialClothes={initialClothes}
+                  setInitialClothes={setInitialClothes}
+                  locale={locale}
+                />
+              </Suspense>
 
               <Group position="right">
                 <Button
                   onClick={() => {
-                    TriggerNuiCallback('saveAppearanceSettings', appearanceSettings);
+                    TriggerNuiCallback('saveAppearanceSettings', {
+                      ...appearanceSettings,
+                      initialClothes
+                    });
                   }}
                 >
                   {locale.ADMIN_SAVE_SETTINGS || 'Save Settings'}
@@ -850,6 +949,7 @@ export const AdminMenu: FC = () => {
               setAddOutfitModalOpen={setAddOutfitModalOpen}
             />
           </Tabs.Panel>
+
         </Tabs>
 
         {isLoadingTab && !addOutfitModalOpen && (

@@ -676,7 +676,7 @@ export const Face: FC = () => {
                     )}
 
                     {/* Neck */}
-                    {data.Neck_Thikness && (
+                    {data.Neck_Thickness && (
                         <>
                             <Divider />
                             <Box>
@@ -695,10 +695,10 @@ export const Face: FC = () => {
                                             min={-1}
                                             max={1}
                                             step={0.01}
-                                            value={data.Neck_Thikness?.value ?? 0}
+                                            value={data.Neck_Thickness?.value ?? 0}
                                             onChange={(e) =>
                                                 updateHeadStructure({
-                                                    ...(data.Neck_Thikness || {}),
+                                                    ...(data.Neck_Thickness || {}),
                                                     value: parseFloat(e.target.value),
                                                 })
                                             }
