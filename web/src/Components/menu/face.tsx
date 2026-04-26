@@ -203,7 +203,7 @@ export const Face: FC = () => {
                         </>
                     )}
                     {/* Cheeks */}
-                    {data.Cheekbone_High && (
+                    {data.Cheeks_Bone_High && (
                         <>
                             <Divider />
                             <Box>
@@ -224,10 +224,10 @@ export const Face: FC = () => {
                                                     min={-1}
                                                     max={1}
                                                     step={0.01}
-                                                    value={data.Cheekbone_High.value ?? 0}
+                                                    value={data.Cheeks_Bone_High.value ?? 0}
                                                     onChange={(e) =>
                                                         updateHeadStructure({
-                                                            ...(data.Cheekbone_High || {}),
+                                                            ...(data.Cheeks_Bone_High || {}),
                                                             value: Number(e.target.value),
                                                         })
                                                     }
@@ -253,10 +253,10 @@ export const Face: FC = () => {
                                                     min={-1}
                                                     max={1}
                                                     step={0.01}
-                                                    value={data.Cheekbone_Width?.value ?? 0}
+                                                    value={data.Cheeks_Bone_Width?.value ?? 0}
                                                     onChange={(e) =>
                                                         updateHeadStructure({
-                                                            ...(data.Cheekbone_Width || {}),
+                                                            ...(data.Cheeks_Bone_Width || {}),
                                                             value: parseFloat(e.target.value),
                                                         })
                                                     }

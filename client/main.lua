@@ -497,22 +497,22 @@ RegisterNetEvent('bakery_appearance:client:updateRestrictions', function(restric
         end
     end
     
-    handleNuiMessage({ action = 'setRestrictions', data = flattened }, true)
+    handleNuiMessage({ action = 'setRestrictions', data = flattened })
 end)
 
 RegisterNetEvent('bakery_appearance:client:updateZones', function(zones)
     CacheAPI.updateCache('zones', zones)
-    handleNuiMessage({ action = 'setZones', data = zones }, true)
+    handleNuiMessage({ action = 'setZones', data = zones })
 end)
 
 RegisterNetEvent('bakery_appearance:client:updateOutfits', function(outfits)
     CacheAPI.updateCache('outfits', outfits)
-    handleNuiMessage({ action = 'setOutfits', data = outfits }, true)
+    handleNuiMessage({ action = 'setOutfits', data = outfits })
 end)
 
 RegisterNetEvent('bakery_appearance:client:updateTattoos', function(tattoos)
     CacheAPI.updateCache('tattoos', tattoos)
-    handleNuiMessage({ action = 'setTattoos', data = tattoos }, true)
+    handleNuiMessage({ action = 'setTattoos', data = tattoos })
 end)
 
 -- JSON blacklist management removed per request

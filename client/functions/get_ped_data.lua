@@ -72,7 +72,8 @@ function GetHeadOverlay(ped)
 
     for i = 0, 13 do
         local name = peddata.Head[i]
-        totals[name] = GetNumHeadOverlayValues(i)
+        -- UI steppers use an inclusive max, but the native returns a count.
+        totals[name] = math.max(GetNumHeadOverlayValues(i) - 1, 0)
 
         if name == 'EyeColour' then
             overlaydata[name] = {

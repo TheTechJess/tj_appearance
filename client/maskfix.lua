@@ -3,6 +3,13 @@ local peddata = require('modules.ped')
 
 local savedBlendData = {}
 local savedFaceFeatures = {}
+local lastPed = 0
+local lastModel = 0
+
+local function clearSavedMaskState()
+    savedBlendData = {}
+    savedFaceFeatures = {}
+end
 
 -- Get current head blend data
 local function getHeadBlendData(ped)
@@ -89,8 +96,7 @@ local function fixMask(ped, pedModelHash)
     if currentMaskDrawable <= 0 then
         restoreSavedBlendData(ped)
         restoreSavedFaceFeatures(ped)
-        savedBlendData = {}
-        savedFaceFeatures = {}
+        clearSavedMaskState()
         return
     end
     
@@ -155,6 +161,13 @@ CreateThread(function()
         local ped = PlayerPedId()
         if DoesEntityExist(ped) then
             local pedModelHash = GetEntityModel(ped)
+            if lastPed ~= 0 and (ped ~= lastPed or pedModelHash ~= lastModel) then
+                clearSavedMaskState()
+            end
+
+            lastPed = ped
+            lastModel = pedModelHash
+
             if pedModelHash == GetHashKey('mp_m_freemode_01') or pedModelHash == GetHashKey('mp_f_freemode_01') then
                 fixMask(ped, pedModelHash)
             end
@@ -207,6 +220,9 @@ exports('ResetMaskFix', function()
     local ped = PlayerPedId()
     restoreSavedBlendData(ped)
     restoreSavedFaceFeatures(ped)
-    savedBlendData = {}
-    savedFaceFeatures = {}
+    clearSavedMaskState()
+end)
+
+exports('ClearMaskFix', function()
+    clearSavedMaskState()
 end)

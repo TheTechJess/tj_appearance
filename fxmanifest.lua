@@ -29,7 +29,7 @@ files {
   'shared/data/*.json',
 }
 
-provide {
-  'esx_skin',
-  'skinchanger'
-}
+-- provide {
+--   'esx_skin',
+--   'skinchanger'
+-- }

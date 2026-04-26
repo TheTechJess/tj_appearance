@@ -60,11 +60,11 @@ Config.Disable = {
         watches = false,
         bracelets = false
     },
-    Tattoos = false -- Disable tattoo section completely
+    Tattoos = true -- Disable tattoo section completely
 }
 
 Config.Tabs = {
-    all = {"heritage", 'face', 'hair', 'clothes', 'accessories', 'makeup', 'tattoos', 'outfits'},
+    all = {"heritage", 'face', 'hair', 'clothes', 'accessories', 'makeup', 'outfits'},
     clothing = {'clothes', 'accessories', 'outfits'},
     barber = {'hair', 'makeup'},
     tattoo = {'tattoos'},

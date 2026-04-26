@@ -480,6 +480,7 @@ lib.callback.register('bakery_appearance:admin:addZone', function(source, zone)
     SaveResourceFile(GetCurrentResourceName(), 'shared/data/zones.json', json.encode(ServerCache.zones), -1)
 
     TriggerClientEvent('bakery_appearance:client:updateZones', -1, ServerCache.zones)
+    TriggerClientEvent('bakery_appearance:client:adminupdateZones', source, ServerCache.zones)
     return true
 end)
 

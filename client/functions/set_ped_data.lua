@@ -1,5 +1,12 @@
 _CurrentTattoos = _CurrentTattoos or {}
 
+local function ClearMaskFixState()
+    local maskfix = exports['bakery_appearance']
+    if maskfix and maskfix.ClearMaskFix then
+        maskfix:ClearMaskFix()
+    end
+end
+
 function SetHeadOverlay(ped, HeadBlendData)
     if HeadBlendData.index == 13 then
         SetPedEyeColor(ped, HeadBlendData.value or HeadBlendData.overlayValue or 0)
@@ -111,6 +118,8 @@ exports('SetPedProps', SetProps);
 
 function SetModel(ped, Model, headblend)
     if not Model then return ped end
+    ClearMaskFixState()
+
     local hash = Model
     if type(hash) == 'string' then hash = joaat(Model) end
 
@@ -177,16 +186,28 @@ end
 exports('SetPedModel', SetModel);
 
 function SetFaceFeatures(ped, FaceData)
-    if not FaceData then return end
+    if type(FaceData) ~= 'table' then return end
 
-    if FaceData.index and FaceData.value then
-        -- Single feature
-        SetPedFaceFeature(ped, FaceData.index, ToFloat(FaceData.value))
-    else
-        -- Multiple features
-        for _, feature in ipairs(FaceData) do
-            SetPedFaceFeature(ped, feature.index, ToFloat(feature.value))
-        end
+    local function applyFeature(feature)
+        if type(feature) ~= 'table' then return end
+
+        local index = feature.index
+        local value = feature.value
+
+        if index == nil or value == nil then return end
+
+        SetPedFaceFeature(ped, tonumber(index), Tofloat(value))
+    end
+
+    if FaceData.index ~= nil and FaceData.value ~= nil then
+        -- Single feature update from NUI slider
+        applyFeature(FaceData)
+        return
+    end
+
+    -- Full head-structure payload may be an array or a keyed table
+    for _, feature in pairs(FaceData) do
+        applyFeature(feature)
     end
 end
 
@@ -323,6 +344,8 @@ end)
 function SetPedAppearance(ped, data)
     if data then
         DebugPrint('Setting ped appearance...')
+        ClearMaskFixState()
+
         -- Handle drawables
         if data.drawables then
             if type(data.drawables) == 'table' then

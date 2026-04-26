@@ -507,22 +507,22 @@ end
 
 RegisterNetEvent('bakery_appearance:client:updateTheme', function(theme)
     Cache.theme = theme
-    handleNuiMessage({ action = 'setThemeConfig', data = theme }, true)
+    handleNuiMessage({ action = 'setThemeConfig', data = theme })
 end)
 
 RegisterNetEvent('bakery_appearance:client:updateZones', function(zones)
     Cache.zones = zones or {}
-    handleNuiMessage({ action = 'setZones', data = Cache.zones }, true)
+    handleNuiMessage({ action = 'setZones', data = Cache.zones })
 end)
 
 RegisterNetEvent('bakery_appearance:client:updateTattoos', function(tattoos)
     Cache.tattoos = tattoos or {}
-    handleNuiMessage({ action = 'setTattoos', data = Cache.tattoos }, true)
+    handleNuiMessage({ action = 'setTattoos', data = Cache.tattoos })
 end)
 
 RegisterNetEvent('bakery_appearance:client:updateAppearanceSettings', function(settings)
     Cache.appearanceSettings = settings or Cache.appearanceSettings or {}
-    handleNuiMessage({ action = 'setAppearanceSettings', data = Cache.appearanceSettings }, true)
+    handleNuiMessage({ action = 'setAppearanceSettings', data = Cache.appearanceSettings })
 end)
 
 -- Public API to get cache data
