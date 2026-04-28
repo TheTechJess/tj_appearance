@@ -1,5 +1,5 @@
 import { FC, useCallback, memo, lazy, Suspense, useState, useEffect } from 'react';
-import { Stack, Group, Checkbox, Divider, NumberInput, Box, Text, Button, Loader } from '@mantine/core';
+import { Stack, Group, Checkbox, Divider, NumberInput, Box, Text, Button, Loader, Badge, ActionIcon } from '@mantine/core';
 import { TriggerNuiCallback } from '../../Utils/TriggerNuiCallback';
 
 const InitialClothesTab = lazy(() => import('./InitialClothesTab').then(mod => ({ default: mod.InitialClothesTab })));
@@ -24,6 +24,7 @@ interface AppearanceSettings {
     tattoo?: number;
     surgeon?: number;
   };
+  maskfixExcludedDrawables?: number[];
 }
 
 // Memoized component for blip configuration
@@ -138,6 +139,7 @@ export const SettingsTab: FC<SettingsTabProps> = ({
   const [localSettings, setLocalSettings] = useState(appearanceSettings);
   const [localFeatures, setLocalFeatures] = useState(initialFeatures || { male: {}, female: {} });
   const [localClothes, setLocalClothes] = useState(initialClothes);
+  const [newExcludedId, setNewExcludedId] = useState<number | ''>('');
 
   // Sync with parent when props change externally
   useEffect(() => {
@@ -209,6 +211,20 @@ export const SettingsTab: FC<SettingsTabProps> = ({
     });
   }, [localSettings]);
 
+  const handleAddExcludedDrawable = useCallback(() => {
+    if (newExcludedId === '' || isNaN(Number(newExcludedId))) return;
+    const id = Number(newExcludedId);
+    const current = localSettings.maskfixExcludedDrawables ?? [];
+    if (current.includes(id)) return;
+    setLocalSettings({ ...localSettings, maskfixExcludedDrawables: [...current, id].sort((a, b) => a - b) });
+    setNewExcludedId('');
+  }, [localSettings, newExcludedId]);
+
+  const handleRemoveExcludedDrawable = useCallback((id: number) => {
+    const current = localSettings.maskfixExcludedDrawables ?? [];
+    setLocalSettings({ ...localSettings, maskfixExcludedDrawables: current.filter(v => v !== id) });
+  }, [localSettings]);
+
   return (
     <Stack spacing="md">
       <Group grow>
@@ -254,6 +270,48 @@ export const SettingsTab: FC<SettingsTabProps> = ({
           />
         ))}
       </Group>
+
+      <Divider label={locale.ADMIN_MASKFIX_EXCLUDED || 'Mask Fix — Excluded Drawables'} labelPosition="left" />
+      <Box p="sm" style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.2)' }}>
+        <Text c="gray.4" size="xs" mb="xs">
+          {locale.ADMIN_MASKFIX_EXCLUDED_DESC || 'Mask drawable IDs listed here will not trigger head or face shrinking from the mask fix feature.'}
+        </Text>
+        <Group spacing="xs" mb="xs">
+          <NumberInput
+            placeholder="Drawable ID"
+            value={newExcludedId}
+            onChange={(val) => setNewExcludedId(val === '' ? '' : Number(val))}
+            min={0}
+            hideControls
+            size="xs"
+            style={{ width: 120 }}
+          />
+          <Button size="xs" onClick={handleAddExcludedDrawable}>
+            {locale.ADMIN_MASKFIX_ADD || 'Add'}
+          </Button>
+        </Group>
+        <Group spacing={6}>
+          {(localSettings.maskfixExcludedDrawables ?? []).length === 0 ? (
+            <Text c="gray.6" size="xs">{locale.ADMIN_MASKFIX_NONE || 'No exclusions configured.'}</Text>
+          ) : (
+            (localSettings.maskfixExcludedDrawables ?? []).map((id) => (
+              <Badge
+                key={id}
+                size="sm"
+                variant="filled"
+                color="dark"
+                rightSection={
+                  <ActionIcon size="xs" color="red" radius="xl" variant="transparent" onClick={() => handleRemoveExcludedDrawable(id)}>
+                    ×
+                  </ActionIcon>
+                }
+              >
+                {id}
+              </Badge>
+            ))
+          )}
+        </Group>
+      </Box>
 
       <Divider label={locale.ADMIN_INITIAL_CLOTHES_TITLE || 'Initial Player Clothing'} labelPosition="left" />
       <Box p="md" style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.2)' }}>

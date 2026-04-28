@@ -323,7 +323,8 @@ lib.callback.register('bakery_appearance:admin:saveAppearanceSettings', function
             female = {
                 headBlend = { shapeFirst = 0, shapeSecond = 0, shapeThird = 0, skinFirst = 0, skinSecond = 0, skinThird = 0, shapeMix = 0, skinMix = 0, thirdMix = 0 }
             }
-        }
+        },
+        maskfixExcludedDrawables = type(settings.maskfixExcludedDrawables) == 'table' and settings.maskfixExcludedDrawables or {},
     }
 
     ServerCache.appearanceSettings = merged

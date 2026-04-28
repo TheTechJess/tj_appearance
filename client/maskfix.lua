@@ -87,11 +87,39 @@ local function shrinkHead(ped, pedModelHash)
     )
 end
 
+-- Lookup set of mask drawable IDs excluded from the maskfix feature (managed via admin settings)
+local excludedDrawables = {}
+local function rebuildExclusionSet(runtimeList)
+    excludedDrawables = {}
+    if type(runtimeList) == 'table' then
+        for _, id in ipairs(runtimeList) do
+            excludedDrawables[id] = true
+        end
+    end
+end
+
+rebuildExclusionSet(nil)
+
+-- Sync with any exclusions already saved in appearance_settings.json on resource start
+CreateThread(function()
+    -- Wait until CacheAPI is ready
+    while not CacheAPI do Wait(100) end
+    local settings = CacheAPI.getAppearanceSettings()
+    if settings then
+        rebuildExclusionSet(settings.maskfixExcludedDrawables)
+    end
+end)
+
+-- Keep the set in sync whenever an admin saves appearance settings
+RegisterNetEvent('bakery_appearance:client:updateAppearanceSettings', function(settings)
+    rebuildExclusionSet(settings and settings.maskfixExcludedDrawables)
+end)
+
 -- Main mask fix logic
 local function fixMask(ped, pedModelHash)
     local currentMaskDrawable = GetPedDrawableVariation(ped, 1)
     local currentMaskTexture = GetPedTextureVariation(ped, 1)
-    
+
     -- No mask equipped
     if currentMaskDrawable <= 0 then
         restoreSavedBlendData(ped)
@@ -100,6 +128,14 @@ local function fixMask(ped, pedModelHash)
         return
     end
     
+    -- Skip maskfix entirely for admin-excluded drawables
+    if excludedDrawables[currentMaskDrawable] then
+        restoreSavedBlendData(ped)
+        restoreSavedFaceFeatures(ped)
+        clearSavedMaskState()
+        return
+    end
+
     local maskHash = GetHashNameForComponent(ped, 1, currentMaskDrawable, currentMaskTexture)
     if maskHash == 0 then return end
 

@@ -41,7 +41,8 @@ local Cache = {
             female = {
                 headBlend = {}
             }
-        }
+        },
+        maskfixExcludedDrawables = {}
     },
     disable = {}
 }
@@ -193,6 +194,7 @@ local function loadAppearanceSettings()
                     end
                 end
             end
+            Cache.appearanceSettings.maskfixExcludedDrawables = type(decoded.maskfixExcludedDrawables) == 'table' and decoded.maskfixExcludedDrawables or {}
         end
     end
 
