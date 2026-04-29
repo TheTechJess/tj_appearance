@@ -12,16 +12,20 @@ Framework.ESX = exports['es_extended']:getSharedObject()
 function Framework.GetPlayerData()
     local PlayerData = Framework.ESX.GetPlayerData()
     if not PlayerData then return nil end
+
+    local name = PlayerData.name or (PlayerData.firstName and PlayerData.lastName and (PlayerData.firstName .. ' ' .. PlayerData.lastName)) or 'Unknown'
+
+    local jobdata = {
+        name = PlayerData.job and PlayerData.job.name or 'unemployed',
+        label = PlayerData.job and PlayerData.job.label or 'Unemployed',
+        grade = PlayerData.job and PlayerData.job.grade or 0,
+        isBoss = PlayerData.job and PlayerData.job.grade_name == 'boss' or false
+    }
     
     return {
         identifier = PlayerData.identifier,
-        name = PlayerData.name or (PlayerData.firstName .. ' ' .. PlayerData.lastName),
-        job = {
-            name = PlayerData.job.name,
-            label = PlayerData.job.label,
-            grade = PlayerData.job.grade,
-            isBoss = PlayerData.job.grade_name == 'boss'
-        },
+        name = name,
+        job = jobdata,
         gang = {
             name = 'none',
             label = 'None',
@@ -45,8 +49,10 @@ function Framework.OnGangUpdate(callback)
     -- ESX doesn't have gangs by default
 end
 
-RegisterNetEvent('esx:playerLoaded', function (xPlayer, skin)
-    CacheAPI.init()
+RegisterNetEvent('esx:playerLoaded', function(xPlayer, skin)
+    Citizen.SetTimeout(500, function()
+        CacheAPI.init()
+    end)
 end)
 
 function Framework.CachePed()
