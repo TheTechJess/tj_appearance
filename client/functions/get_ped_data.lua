@@ -202,7 +202,7 @@ function GetAppearance(ped)
 
 
   local data = {
-    model = modelString,
+    model = modelString or modelHash,
     hairColour = hairColour,
     headBlend = GetPedHeritageData(ped),
     headStructure = GetHeadStructure(ped),

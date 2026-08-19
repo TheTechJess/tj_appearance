@@ -16,6 +16,23 @@ local function GetPedModalHash(ped)
     return GetEntityModel(ped)
 end
 
+local function GetPlayerGender(source, playerData)
+    if playerData and playerData.gender then
+        local gender = tostring(playerData.gender):lower()
+        if gender == 'female' or gender == 'f' or gender == '1' then
+            return 'female'
+        end
+
+        if gender == 'male' or gender == 'm' or gender == '0' then
+            return 'male'
+        end
+    end
+
+    local ped = GetPlayerPed(source)
+    local model = GetPedModalHash(ped)
+    return model == GetHashKey("mp_f_freemode_01") and 'female' or 'male'
+end
+
 -- Save player appearance callback
 lib.callback.register('bakery_appearance:saveAppearance', function(source, appearance)
     local citizenid = Framework.GetCitizenId(source)
@@ -105,14 +122,13 @@ lib.callback.register('bakery_appearance:saveOutfit', function(source, outfitDat
         return false
     end
 
-    -- Determine gender from current model or outfit data
-    local ped = GetPlayerPed(source)
-    local model = GetPedModalHash(ped)
-    local isMale = model == GetHashKey("mp_m_freemode_01")
-    local gender = isMale and 'male' or 'female'
+    local gender = GetPlayerGender(source, playerData)
 
-    local outfitName = outfitData.label or 'Unnamed Outfit'
-    local outfit = outfitData.outfit
+    local outfitName = outfitData and outfitData.label or 'Unnamed Outfit'
+    local outfit = outfitData and outfitData.outfit
+    if type(outfit) ~= 'table' then
+        return false
+    end
     
     -- Extract only components and props for consistency with job outfits
     local filteredComponents = {}
@@ -157,11 +173,7 @@ lib.callback.register('bakery_appearance:getOutfits', function(source)
         return {}
     end
 
-    -- Determine gender
-    local ped = GetPlayerPed(source)
-    local model = GetPedModalHash(ped)
-    local isMale = model == GetHashKey("mp_m_freemode_01")
-    local gender = isMale and 'male' or 'female'
+    local gender = GetPlayerGender(source, playerData)
 
     -- Debug: Print player job/gang info
     DebugPrint(string.format('[bakery_appearance] Fetching outfits for player %s - Job: %s, Gang: %s, Gender: %s', 
@@ -271,11 +283,8 @@ lib.callback.register('bakery_appearance:renameOutfit', function(source, data)
         return false
     end
 
-    -- Determine gender
-    local ped = GetPlayerPed(source)
-    local model = GetPedModalHash(ped)
-    local isMale = model == GetHashKey("mp_m_freemode_01")
-    local gender = isMale and 'male' or 'female'
+    local playerData = Framework.GetPlayer(source)
+    local gender = GetPlayerGender(source, playerData)
     
     -- Rename in database
     local success = Database.RenamePersonalOutfit(citizenid, numericId, data.label, gender)
@@ -306,11 +315,8 @@ lib.callback.register('bakery_appearance:deleteOutfit', function(source, outfitD
         return false
     end
 
-    -- Determine gender
-    local ped = GetPlayerPed(source)
-    local model = GetPedModalHash(ped)
-    local isMale = model == GetHashKey("mp_m_freemode_01")
-    local gender = isMale and 'male' or 'female'
+    local playerData = Framework.GetPlayer(source)
+    local gender = GetPlayerGender(source, playerData)
 
     local outfitName = outfitData.name or outfitData.label
     

@@ -259,15 +259,18 @@ RegisterNuiCallback('useOutfit', function(outfitData, cb)
     end
 
     local ped = cache.ped
+    local outfit = outfitData.outfit or outfitData
 
     -- Apply components (clothes)
-    if outfitData.components then
-        SetDrawables(ped, outfitData.components)
+    if outfit.components then
+        SetDrawables(ped, outfit.components)
+    elseif outfit.drawables then
+        SetDrawables(ped, outfit.drawables)
     end
 
     -- Apply props (accessories)
-    if outfitData.props then
-        SetProps(ped, outfitData.props)
+    if outfit.props then
+        SetProps(ped, outfit.props)
     end
     cb({})
 end)
@@ -346,6 +349,16 @@ function SetPedAppearance(ped, data)
         DebugPrint('Setting ped appearance...')
         ClearMaskFixState()
 
+        -- Clothing component IDs only make sense on the model they were saved from.
+        if data.model then
+            local modelHash = type(data.model) == 'number' and data.model or joaat(data.model)
+            if modelHash ~= 0 and GetEntityModel(ped) ~= modelHash then
+                SetModel(ped, data.model)
+                Wait(250)
+                ped = PlayerPedId()
+            end
+        end
+
         -- Handle drawables
         if data.drawables then
             if type(data.drawables) == 'table' then
@@ -408,6 +421,40 @@ function SetPedAppearance(ped, data)
             ApplyTattoos(ped, data.tattoos)
         end
     end
+end
+
+function LoadSavedAppearance(showNotification)
+    lib.callback('bakery_appearance:getAppearance', false, function(appearance)
+        if not appearance then
+            if showNotification then
+                lib.notify({
+                    title = 'Error',
+                    description = 'Failed to load your saved appearance',
+                    type = 'error'
+                })
+            end
+            return
+        end
+
+        SetPedAppearance(PlayerPedId(), appearance)
+
+        if appearance.tattoos then
+            _CurrentTattoos = appearance.tattoos
+            ApplyTattoos(PlayerPedId(), appearance.tattoos)
+        end
+
+        if Framework and Framework.CachePed then
+            Framework.CachePed()
+        end
+
+        if showNotification then
+            lib.notify({
+                title = 'Success',
+                description = 'Your appearance has been reloaded',
+                type = 'success'
+            })
+        end
+    end)
 end
 
 function SetupClothing(isMale)

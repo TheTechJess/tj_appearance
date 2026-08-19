@@ -13,11 +13,13 @@ Framework = {}
 function Framework.GetPlayer(source)
     local xPlayer = ESX.GetPlayerFromId(source)
     if not xPlayer then return nil end
+    local sex = xPlayer.get and xPlayer.get('sex') or nil
     
     return {
         source = source,
         citizenid = xPlayer.identifier, -- ESX uses identifier instead of citizenid
         name = xPlayer.getName(),
+        gender = (sex == 'f' or sex == 'female') and 'female' or 'male',
         job = {
             name = xPlayer.job.name,
             label = xPlayer.job.label,

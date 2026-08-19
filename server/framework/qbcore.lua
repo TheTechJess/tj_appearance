@@ -1,5 +1,5 @@
--- Guard: ensure qb-core is started before loading
-if GetResourceState('qb-core') ~= 'started' or  GetResourceState('qbx-core') == 'started'then
+-- Guard: ensure qb-core is started before loading, but do not override QBox
+if GetResourceState('qb-core') ~= 'started' or GetResourceState('qbx_core') == 'started' then
     return
 end
 
@@ -18,6 +18,7 @@ function Framework.GetPlayer(source)
         source = source,
         citizenid = Player.PlayerData.citizenid,
         name = Player.PlayerData.charinfo.firstname .. ' ' .. Player.PlayerData.charinfo.lastname,
+        gender = Player.PlayerData.charinfo.gender == 1 and 'female' or 'male',
         job = {
             name = Player.PlayerData.job.name,
             label = Player.PlayerData.job.label,

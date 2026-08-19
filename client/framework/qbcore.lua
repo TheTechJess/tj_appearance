@@ -1,5 +1,5 @@
--- Guard: ensure qb-core is started before loading
-if GetResourceState('qb-core') ~= 'started' then
+-- Guard: ensure qb-core is started before loading, but do not override QBox
+if GetResourceState('qb-core') ~= 'started' or GetResourceState('qbx_core') == 'started' then
     return
 end
 
@@ -51,4 +51,8 @@ end
 
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
     CacheAPI.init()
+    Wait(1500)
+    if LoadSavedAppearance then
+        LoadSavedAppearance(false)
+    end
 end)

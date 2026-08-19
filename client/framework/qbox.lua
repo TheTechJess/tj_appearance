@@ -1,16 +1,14 @@
--- Guard: ensure qb-core is started before loading (QBox is based on QBCore)
-if GetResourceState('qb-core') ~= 'started' then
+-- Guard: ensure qbx_core is started before loading
+if GetResourceState('qbx_core') ~= 'started' then
     return
 end
-
-local QBCore = exports['qb-core']:GetCoreObject()
 
 Framework = {}
 
 --- Get local player data from QBox/QBCore
 ---@return table|nil playerData Player data including job, gang, etc.
 function Framework.GetPlayerData()
-    local PlayerData = QBCore.Functions.GetPlayerData()
+    local PlayerData = exports.qbx_core:GetPlayerData()
     if not PlayerData then return nil end
     
     return {
@@ -50,5 +48,21 @@ end
 
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', function()
     CacheAPI.init()
+    Wait(1500)
+    if LoadSavedAppearance then
+        LoadSavedAppearance(false)
+    end
+end)
+
+RegisterNetEvent('QBCore:Client:OnPlayerUnload', function()
+    ClearPedDecorations(cache.ped)
+end)
+
+RegisterNetEvent('qbx_core:client:playerLoaded', function()
+    CacheAPI.init()
+    Wait(1500)
+    if LoadSavedAppearance then
+        LoadSavedAppearance(false)
+    end
 end)
 

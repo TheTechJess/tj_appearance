@@ -588,32 +588,6 @@ RegisterCommand(Config.ReloadSkin.command, function()
     return
   end
   
-  -- Fetch and apply saved appearance
-  lib.callback('bakery_appearance:getAppearance', false, function(appearance)
-    if appearance then
-      -- Apply the appearance
-      SetPedAppearance(ped, appearance)
-      
-      -- Apply tattoos if they exist
-      if appearance.tattoos then
-        _CurrentTattoos = appearance.tattoos
-        ApplyTattoos(ped, appearance.tattoos)
-      end
-      
-      -- Update last reload time
-      lastReloadTime = GetGameTimer()
-      
-      lib.notify({
-        title = 'Success',
-        description = 'Your appearance has been reloaded',
-        type = 'success'
-      })
-    else
-      lib.notify({
-        title = 'Error',
-        description = 'Failed to load your saved appearance',
-        type = 'error'
-      })
-    end
-  end)
+  LoadSavedAppearance(true)
+  lastReloadTime = GetGameTimer()
 end, false)

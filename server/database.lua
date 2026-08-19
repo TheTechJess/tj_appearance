@@ -2,14 +2,60 @@
 
 local Database = {}
 
+local function columnExists(tableName, columnName)
+    local result = MySQL.query.await([[
+        SELECT 1
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?
+        LIMIT 1
+    ]], {tableName, columnName})
+
+    return result and result[1] ~= nil
+end
+
+local function indexExists(tableName, indexName)
+    local result = MySQL.query.await([[
+        SELECT 1
+        FROM INFORMATION_SCHEMA.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?
+        LIMIT 1
+    ]], {tableName, indexName})
+
+    return result and result[1] ~= nil
+end
+
+local function ensureColumn(tableName, columnName, definition)
+    if columnExists(tableName, columnName) then
+        return
+    end
+
+    pcall(function()
+        MySQL.query.await(('ALTER TABLE %s ADD COLUMN %s %s'):format(tableName, columnName, definition))
+    end)
+end
+
+local function ensureIndex(tableName, indexName, definition)
+    if indexExists(tableName, indexName) then
+        return
+    end
+
+    pcall(function()
+        MySQL.query.await(('ALTER TABLE %s ADD %s'):format(tableName, definition))
+    end)
+end
+
 
 MySQL.ready(function()
     -- Create player_appearance table if it doesn't exist
     MySQL.query([[
         CREATE TABLE IF NOT EXISTS player_appearance (
-            citizenid VARCHAR(50) NOT NULL PRIMARY KEY,
+            id INT NOT NULL AUTO_INCREMENT,
+            citizenid VARCHAR(50) NOT NULL,
             appearance_data LONGTEXT NOT NULL,
-            updated_at DATETIME NOT NULL
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY unique_citizenid (citizenid)
         )
     ]])
 
@@ -21,11 +67,26 @@ MySQL.ready(function()
             gender VARCHAR(10) NOT NULL,
             outfit_name VARCHAR(100) NOT NULL,
             outfit_data LONGTEXT NOT NULL,
-            share_code VARCHAR(16),
-            created_at DATETIME NOT NULL,
-            updated_at DATETIME NOT NULL
+            share_code VARCHAR(8) NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_citizenid_outfit (citizenid, outfit_name, gender),
+            UNIQUE KEY unique_share_code (share_code),
+            INDEX idx_citizenid_gender (citizenid, gender)
         )
     ]])
+
+    -- Migrate older installs that created player_outfits before these fields existed.
+    ensureColumn('player_outfits', 'gender', "VARCHAR(10) NOT NULL DEFAULT 'male'")
+    ensureColumn('player_outfits', 'outfit_name', "VARCHAR(100) NOT NULL DEFAULT 'Outfit'")
+    ensureColumn('player_outfits', 'outfit_data', 'LONGTEXT NOT NULL')
+    ensureColumn('player_outfits', 'share_code', 'VARCHAR(8) NULL')
+    ensureColumn('player_outfits', 'created_at', 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP')
+    ensureColumn('player_outfits', 'updated_at', 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+
+    ensureIndex('player_outfits', 'unique_citizenid_outfit', 'UNIQUE KEY unique_citizenid_outfit (citizenid, outfit_name, gender)')
+    ensureIndex('player_outfits', 'unique_share_code', 'UNIQUE KEY unique_share_code (share_code)')
+    ensureIndex('player_outfits', 'idx_citizenid_gender', 'INDEX idx_citizenid_gender (citizenid, gender)')
 end)
 
 --- Save player appearance to database
@@ -87,12 +148,20 @@ function Database.SaveOutfit(citizenid, job, gang, gender, outfitName, outfitDat
     -- Generate unique 8-character share code
     local function generateShareCode()
         local chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' -- Removed similar looking chars
-        local code = ''
-        for i = 1, 8 do
-            local rand = math.random(1, #chars)
-            code = code .. chars:sub(rand, rand)
+        for _ = 1, 10 do
+            local code = ''
+            for i = 1, 8 do
+                local rand = math.random(1, #chars)
+                code = code .. chars:sub(rand, rand)
+            end
+
+            local existing = MySQL.query.await('SELECT id FROM player_outfits WHERE share_code = ? LIMIT 1', {code})
+            if not existing or not existing[1] then
+                return code
+            end
         end
-        return code
+
+        return nil
     end
 
     -- Determine if this is a personal outfit or job/gang outfit
@@ -100,6 +169,9 @@ function Database.SaveOutfit(citizenid, job, gang, gender, outfitName, outfitDat
 
     if isPersonal then
         local shareCode = generateShareCode()
+        if not shareCode then
+            return false, nil
+        end
         
         -- Save to personal outfits table
         local result = MySQL.query.await([[
